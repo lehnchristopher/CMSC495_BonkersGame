@@ -2,3 +2,6 @@
 .idea
 
 **/__pycache__
+
+FETCH_HEAD
+records.txt
