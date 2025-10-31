@@ -301,6 +301,7 @@ def define_blocks(screen, level):
     return blocks, brick_images
 
 
+
 def play(screen, debug_mode=False):
     return main_controller(screen, debug_mode)
 

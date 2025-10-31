@@ -146,7 +146,7 @@ class ScoreBoard:
             self._lives_surface = self.font.render(f"Lives: {self.lives}", True, (255, 80, 80))
             self._last_lives = self.lives
 
-        # High score and best time shown side-by-side at top-left
+        # Updated layout: high score and best time shown side-by-side at top-left
         high_x, high_y = 10, 60
         self.screen.blit(self._high_surface, (high_x, high_y))
 
