@@ -16,7 +16,8 @@ class ScoreBoard:
 
     def __init__(self, screen):
         self.screen = screen
-        self.font = pygame.font.SysFont("Verdana", 26)  # clean, readable font
+        font_path = os.path.join(os.path.dirname(__file__), '..', 'media', 'graphics', 'font', 'Pixeboy.ttf')
+        self.font = pygame.font.Font(font_path, 50)  # Pixel font
         self.score = 0
         self.high_score = 0
         self.lives = 3
@@ -78,21 +79,21 @@ class ScoreBoard:
         - Lives at bottom-right
         """
 
-        margin = 25  # distance from screen edges
+        margin = 65  # distance from screen edges
 
         # Update cached surfaces only when values change
         if self._last_score != self.score:
             self._score_surface = self.font.render(f"Score: {self.score}", True, (255, 255, 255))
             self._last_score = self.score
         if self._last_high != self.high_score:
-            self._high_surface = self.font.render(f"High: {self.high_score}", True, (255, 255, 0))
+            self._high_surface = self.font.render(f"High: {self.high_score}", True, (255, 255, 255))
             self._last_high = self.high_score
         if self._last_lives != self.lives:
             self._lives_surface = self.font.render(f"Lives: {self.lives}", True, (255, 80, 80))
             self._last_lives = self.lives
 
         # Draw high score near top-left corner
-        self.screen.blit(self._high_surface, (10, 5))
+        self.screen.blit(self._high_surface, (10, 60))
 
         # Draw score at bottom-left
         score_y = SCREEN_HEIGHT - margin - self._score_surface.get_height()
