@@ -16,7 +16,8 @@ class ScoreBoard:
 
     def __init__(self, screen):
         self.screen = screen
-        self.font = pygame.font.SysFont("Verdana", 22)
+        font_path = os.path.join(os.path.dirname(__file__), '..', 'media', 'graphics', 'font', 'Pixeboy.ttf')
+        self.font = pygame.font.Font(font_path, 50)  # Pixel font
         self.score = 0
         self.high_score = 0
         self.best_time = 0.0  # added best time tracking for fastest completion
@@ -128,14 +129,14 @@ class ScoreBoard:
         - Lives at bottom-right
         """
 
-        margin = 25  # distance from screen edges
+        margin = 65  # distance from screen edges
 
         # Added check for best time display (beside high score)
         if self._last_score != self.score:
             self._score_surface = self.font.render(f"Score: {self.score}", True, (255, 255, 255))
             self._last_score = self.score
         if self._last_high != self.high_score:
-            self._high_surface = self.font.render(f"High: {self.high_score}", True, (255, 255, 0))
+            self._high_surface = self.font.render(f"High: {self.high_score}", True, (255, 255, 255))
             self._last_high = self.high_score
         if self._last_best_time != self.best_time:
             best_time_display = f"{int(self.best_time // 60):02}:{int(self.best_time % 60):02}"
@@ -146,7 +147,7 @@ class ScoreBoard:
             self._last_lives = self.lives
 
         # Updated layout: high score and best time shown side-by-side at top-left
-        high_x, high_y = 10, 8
+        high_x, high_y = 10, 60
         self.screen.blit(self._high_surface, (high_x, high_y))
 
         # Added positioning to place best time next to high score

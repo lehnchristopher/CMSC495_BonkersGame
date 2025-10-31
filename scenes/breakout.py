@@ -7,8 +7,20 @@ from objects.scoreboard import ScoreBoard
 from scenes.win_lose import end_screen
 from objects.timer import Timer  # Added import for new timer feature
 
+# Paddle constants
+BAR_WIDTH = 200
+BAR_HEIGHT = 20
+
 clock = pygame.time.Clock()
 delta_time = 1
+
+# Load background image
+try:
+    background = pygame.image.load("media/graphics/background/back-black.png")
+    background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+except:
+    print("Warning: Could not load background image. Using black background.")
+    background = None
 
 # Initialize the mixer for sound
 pygame.mixer.init()
@@ -24,6 +36,13 @@ except:
     paddle_sound = None
     brick_sound = None
 
+# Load paddle image
+try:
+    paddle_image = pygame.image.load("media/graphics/paddle/paddle.png")
+    paddle_image = pygame.transform.scale(paddle_image, (BAR_WIDTH, BAR_HEIGHT))
+except:
+    paddle_image = None
+    print("Warning: Could not load paddle image")
 
 def main_controller(screen, debug_mode=False):
     global delta_time
@@ -44,12 +63,18 @@ def main_controller(screen, debug_mode=False):
         timer = Timer(screen, mode="countdown", countdown_time=10)
 
     font = pygame.font.Font(None, 36)
+    
+
+    # Load pixel font for messages
+    import os
+    pixel_font_path = os.path.join(os.path.dirname(__file__), '..', 'media', 'graphics', 'font', 'Pixeboy.ttf')
+    pixel_font = pygame.font.Font(pixel_font_path, 36)
 
     # Set up the initial position and speed of the paddle
-    bar_height = 20
-    bar_width = 200
+    bar_height = BAR_HEIGHT
+    bar_width = BAR_WIDTH
     bar_x = (SCREEN_WIDTH - bar_width) // 2
-    bar_y = SCREEN_HEIGHT - bar_height - 50
+    bar_y = SCREEN_HEIGHT - bar_height - 100
     speed = 5
 
     # Set up the initial position and velocity of the ball
@@ -60,19 +85,31 @@ def main_controller(screen, debug_mode=False):
     ball_max_velocity_x = 5
 
     # Generate the block layout
-    blocks = define_blocks(screen, level)
+    blocks, brick_images = define_blocks(screen, level)
     for block in blocks:
-        pygame.draw.rect(screen, block.color, block.rect)
+        # Try to draw brick image, fallback to rectangle
+        if block.color in brick_images and brick_images[block.color]:
+            screen.blit(brick_images[block.color], block.rect)
+        else:
+            pygame.draw.rect(screen, block.color, block.rect)
 
     running = True
     while running:
         # Fill the screen with black color
-        screen.fill(BLACK)
+        if background:
+            screen.blit(background, (0, 0))
+        else:
+            screen.fill(BLACK)
 
-        # Draw the paddle
-        bar = pygame.draw.rect(screen, RED, (bar_x, bar_y, bar_width, bar_height))
+# Draw the paddle
+        bar_rect = pygame.Rect(bar_x, bar_y, bar_width, bar_height)
+        if paddle_image:
+            screen.blit(paddle_image, (bar_x, bar_y))
+        else:
+            pygame.draw.rect(screen, RED, bar_rect)
+        bar = bar_rect
+        
         ball = pygame.draw.circle(screen, WHITE, ball_position, ball_radius)
-
         # Constrain the ball to the screen bounds
         if ball_position.x + ball_radius >= SCREEN_WIDTH or ball_position.x - ball_radius <= 0:
             ball_velocity.x *= -1
@@ -107,7 +144,7 @@ def main_controller(screen, debug_mode=False):
                 bar_x -= speed
 
         if ball_velocity.y == 0:
-            msg = font.render("PRESS [SPACE] TO BEGIN", True, GREEN)
+            msg = pixel_font.render("PRESS [SPACE] TO BEGIN", True, (255, 255, 0))
             screen.blit(msg, (SCREEN_WIDTH // 2 - msg.get_width() // 2, SCREEN_HEIGHT // 2))
         else:
             # Save previous ball position and move the ball
@@ -125,9 +162,14 @@ def main_controller(screen, debug_mode=False):
                 if paddle_sound:
                     paddle_sound.play()
 
-        # Draw the blocks and check for collisions
+# Draw the blocks and check for collisions
         for block in blocks:
-            pygame.draw.rect(screen, block.color, block.rect)
+            # Try to draw brick image, fallback to rectangle
+            if block.color in brick_images and brick_images[block.color]:
+                screen.blit(brick_images[block.color], block.rect)
+            else:
+                pygame.draw.rect(screen, block.color, block.rect)
+            
             if block.rect.colliderect(ball):
                 hit_vertical = prev_y <= block.rect.top or prev_y >= block.rect.bottom
                 if hit_vertical:
@@ -225,6 +267,18 @@ def define_blocks(screen, level):
 
     column = 0
 
+     # Load brick images
+    brick_images = {}
+    color_names = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'cyan']
+    
+    for i, color_name in enumerate(color_names):
+        try:
+            img = pygame.image.load(f"media/graphics/bricks/{color_name}-brick.png")
+            brick_images[color_list[i]] = pygame.transform.scale(img, (block_width, block_height))
+        except:
+            brick_images[color_list[i]] = None
+            print(f"Warning: Could not load {color_name}-brick.png")
+
     # Calculate how many blocks fit per row
     blocks_per_row = (screen.get_width() - block_space) // (block_width + block_space)
 
@@ -240,11 +294,12 @@ def define_blocks(screen, level):
 
         # Add the block to the list and increment the column
         color = color_list[row % len(color_list)]
-        blocks.append(Block(pygame.Rect(block_x + block_space, (block_height * row) + (block_space * row) + 50,
+        blocks.append(Block(pygame.Rect(block_x + block_space, (block_height * row) + (block_space * row) + 150 ,
                                         block_width, block_height), color))
         column += 1
 
-    return blocks
+    return blocks, brick_images
+
 
 
 def play(screen, debug_mode=False):
