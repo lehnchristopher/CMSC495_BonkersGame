@@ -83,5 +83,5 @@ class Timer:
         text_surface = self.font.render(time_text, True, self.text_color)
 
         # Changed position to top-right corner (keeps it clear of scoreboard)
-        text_rect = text_surface.get_rect(topright=(1180, 10))
+        text_rect = text_surface.get_rect(topright=(1180,65))
         self.screen.blit(text_surface, text_rect)
