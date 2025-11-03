@@ -7,6 +7,17 @@ from datetime import datetime, timezone, timedelta
 
 pygame.font.init()
 
+# Initialize the mixer for sound
+pygame.mixer.init()
+
+# Load sound effects
+
+try:
+    menu_click_sound = pygame.mixer.Sound("media/audio/media_audio_selection_click.wav")
+except:
+    print("Warning: Could not load menu click sound.")
+    menu_click_sound = None
+
 def load_custom_font(size):
     font_path = os.path.join(os.path.dirname(__file__), "..", "media", "graphics", "font", "Pixeboy.ttf")
     return pygame.font.Font(font_path, size)
@@ -134,9 +145,13 @@ def show_high_scores(screen):
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                if menu_click_sound:
+                        menu_click_sound.play()
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if menu_click_sound:
+                        menu_click_sound.play()
                 running = False
 
         pygame.display.flip()

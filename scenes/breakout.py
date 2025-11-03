@@ -12,12 +12,18 @@ from scenes.pause_overlay import pause_overlay
 BAR_WIDTH = 200
 BAR_HEIGHT = 20
 
+# WALL / BORDER 
+WALL_PADDING = 30          
+WALL_TOP_PADDING = 120     
+WALL_THICKNESS = 10         
+BRICKS_TOP = 140
+
 clock = pygame.time.Clock()
 delta_time = 1
 
 # Load background image
 try:
-    background = pygame.image.load("media/graphics/background/back-black.png")
+    background = pygame.image.load("media/graphics/background/back-black-wall-border.png")
     background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
 except:
     print("Warning: Could not load background image. Using black background.")
@@ -31,11 +37,13 @@ try:
     wall_sound = pygame.mixer.Sound("media/audio/media_audio_wall-hit.wav")
     paddle_sound = pygame.mixer.Sound("media/audio/media_audio_paddle-hit.wav")
     brick_sound = pygame.mixer.Sound("media/audio/media_audio_brick-hit.ogg")
+    lose_life_sound = pygame.mixer.Sound("media/audio/media_audio_lose-lives.wav")
 except:
     print("Warning: Could not load sound files. Game will run without sound.")
     wall_sound = None
     paddle_sound = None
     brick_sound = None
+    lose_life_sound = None
 
 # Load paddle image
 try:
@@ -101,8 +109,16 @@ def main_controller(screen, debug_mode=False):
             screen.blit(background, (0, 0))
         else:
             screen.fill(BLACK)
-
-        # Draw the paddle
+        # Create the inner wall rectangle (inside screen edges)
+        wall_bottom = SCREEN_HEIGHT - 150  
+        
+        wall_rect = pygame.Rect(
+            WALL_PADDING,
+            WALL_TOP_PADDING,
+            SCREEN_WIDTH - WALL_PADDING * 2,
+            wall_bottom - WALL_TOP_PADDING   # height from top wall to wall_bottom
+        )
+# Draw the paddle
         bar_rect = pygame.Rect(bar_x, bar_y, bar_width, bar_height)
         if paddle_image:
             screen.blit(paddle_image, (bar_x, bar_y))
@@ -154,6 +170,27 @@ def main_controller(screen, debug_mode=False):
             # Save previous ball position and move the ball
             prev_x, prev_y = ball_position.x, ball_position.y
             ball_position.move_towards_ip(ball_position + ball_velocity, 10)
+            # Wall collision detection (inner wall - left, right, top)
+            # Left wall
+            if ball_position.x - ball_radius <= wall_rect.left:
+                ball_velocity.x *= -1
+                ball_position.x = wall_rect.left + ball_radius
+                if wall_sound:
+                    wall_sound.play()
+            
+            # Right wall
+            if ball_position.x + ball_radius >= wall_rect.right:
+                ball_velocity.x *= -1
+                ball_position.x = wall_rect.right - ball_radius
+                if wall_sound:
+                    wall_sound.play()
+            
+            # Top wall 
+            if ball_position.y - ball_radius <= wall_rect.top:
+                ball_velocity.y *= -1
+                ball_position.y = wall_rect.top + ball_radius
+                if wall_sound:
+                    wall_sound.play()
 
             # Is the ball touching the paddle
             if bar.colliderect(ball):
@@ -203,6 +240,7 @@ def main_controller(screen, debug_mode=False):
         # Check if the ball goes below the paddle
         if ball_position.y - ball_radius > SCREEN_HEIGHT:
             scoreboard.lose_life()
+            lose_life_sound.play()
             timer.pause()  # pause timer when a life is lost
             if scoreboard.lives > 0:
                 # Reset ball and paddle
@@ -269,7 +307,7 @@ def get_x_velocity(bar, ball, ball_max_velocity_x, bar_width):
     return ball_offset * ratio
 
 
-def define_blocks(screen, level):
+def define_blocks(screen, level, wall_padding=WALL_PADDING):
     blocks = []
     num_blocks = 68
     block_width = 60
@@ -285,7 +323,7 @@ def define_blocks(screen, level):
 
     column = 0
 
-     # Load brick images
+    # Load brick images
     brick_images = {}
     color_names = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'cyan']
     
@@ -297,28 +335,32 @@ def define_blocks(screen, level):
             brick_images[color_list[i]] = None
             print(f"Warning: Could not load {color_name}-brick.png")
 
-    # Calculate how many blocks fit per row
-    blocks_per_row = (screen.get_width() - block_space) // (block_width + block_space)
+    # Calculate how many blocks fit per row inside the wall
+    usable_width = screen.get_width() - (wall_padding * 2)
+    blocks_per_row = (usable_width + block_space) // (block_width + block_space)
+
+    # Calculate the total width of all blocks in a row
+    total_blocks_width = blocks_per_row * block_width + (blocks_per_row - 1) * block_space
+    # Calculate left offset to center the blocks
+    left_offset = (screen.get_width() - total_blocks_width) // 2
 
     for i in range(num_blocks):
-        # Calculate block's X position
-        block_x = column * (block_width + block_space)
-
-        # Does the block pass the screen edge? If so, move to next row
+        # Move to next row when needed (check BEFORE calculating position)
         if column >= blocks_per_row:
             row += 1
             column = 0
-            block_x = column * (block_width + block_space)
 
-        # Add the block to the list and increment the column
+        # Calculate block's X position - ALL blocks use the same left_offset
+        block_x = left_offset + column * (block_width + block_space)
+
+        # Y position also offset by BRICKS_TOP
+        block_y = BRICKS_TOP + (block_height * row) + (block_space * row)
+
         color = color_list[row % len(color_list)]
-        blocks.append(Block(pygame.Rect(block_x + block_space, (block_height * row) + (block_space * row) + 150 ,
-                                        block_width, block_height), color))
+        blocks.append(Block(pygame.Rect(block_x, block_y, block_width, block_height), color))
         column += 1
 
     return blocks, brick_images
-
-
 
 def play(screen, debug_mode=False):
     return main_controller(screen, debug_mode)

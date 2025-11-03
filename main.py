@@ -5,6 +5,23 @@ import common
 from common import RED, WHITE, GREEN, BLUE, SCREEN_WIDTH, SCREEN_HEIGHT
 from scenes import breakout, how_to, highscores
 
+# Initialize the mixer for sound
+pygame.mixer.init()
+
+# Load sound effects
+
+try:
+    menu_click_sound = pygame.mixer.Sound("media/audio/media_audio_selection_click.wav")
+except:
+    print("Warning: Could not load menu click sound.")
+    menu_click_sound = None
+
+# Load background image
+try:
+    menu_background = pygame.image.load("media/graphics/background/back-landscape-grid.png")
+except:
+    print("Warning: Could not load background image.")
+    menu_background = None
 
 def main_menu():
     # Set up the screen
@@ -28,8 +45,13 @@ def main_menu():
 
     running = True
     while running:
-        # Fill the screen with a gradient background
-        common.draw_gradient_background(screen, (20, 20, 60), (0, 0, 0))
+        # Draw background
+        if menu_background:
+            scaled_bg = pygame.transform.scale(menu_background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            screen.blit(scaled_bg, (0, 0))
+        else:
+            common.draw_gradient_background(screen, (20, 20, 60), (0, 0, 0))
+
         screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 150))
 
         # Draw menu buttons
@@ -57,12 +79,20 @@ def main_menu():
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if play_rect.collidepoint(event.pos):
+                    if menu_click_sound:
+                        menu_click_sound.play()
                     play_breakout(screen)
                 elif how_rect.collidepoint(event.pos):
+                    if menu_click_sound:
+                        menu_click_sound.play()
                     how_to.show_instructions(screen)
                 elif high_rect.collidepoint(event.pos):
+                    if menu_click_sound:
+                        menu_click_sound.play()
                     highscores.show_high_scores(screen)
                 elif quit_rect.collidepoint(event.pos):
+                    if menu_click_sound:
+                        menu_click_sound.play()
                     pygame.quit()
                     sys.exit()
             if event.type == pygame.KEYDOWN:
@@ -70,8 +100,12 @@ def main_menu():
                 if event.key == pygame.K_LCTRL:
                     open_test_menu(screen)
                 elif event.key == pygame.K_SPACE:
+                    if menu_click_sound:
+                        menu_click_sound.play()
                     play_breakout(screen)
                 elif event.key == pygame.K_ESCAPE:
+                    if menu_click_sound:
+                        menu_click_sound.play()
                     pygame.quit()
                     sys.exit()
 

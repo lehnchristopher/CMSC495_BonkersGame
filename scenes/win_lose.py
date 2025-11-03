@@ -6,6 +6,20 @@ from common import SCREEN_WIDTH, SCREEN_HEIGHT, BLACK, WHITE, RED, ORANGE
 # Initialize Pygame
 pygame.init()
 
+pygame.mixer.init()
+
+# Load game over sound
+try:
+    game_over_sound = pygame.mixer.Sound("media/audio/media_audio_game_over.wav")
+    win_sound = pygame.mixer.Sound("media/audio/media_audio_win.wav")
+    menu_click_sound = pygame.mixer.Sound("media/audio/media_audio_selection_click.wav")
+
+except:
+    print("Warning: Could not load game over sound.")
+    game_over_sound = None
+    win_sound = None
+    menu_click_sound = None
+
 # Colors
 BLUE = (18, 89, 202)
 YELLOW = (254, 175, 54)
@@ -114,6 +128,11 @@ def draw_animated_text(screen, full_text, letter_states, font, color, center_pos
 
 def end_screen(screen, win=True, score=500):
     pygame.display.set_caption("Congratulations!" if win else "Game Over")
+    # Play game over sound if player lost
+    if win and win_sound:
+        win_sound.play()
+    elif not win and game_over_sound:
+        game_over_sound.play()
     full_text = "YOU WIN!" if win else "GAME OVER"
     text_color = YELLOW if win else RED
 
@@ -230,8 +249,26 @@ def end_screen(screen, win=True, score=500):
                     buttons_alpha = 255
                 elif event.key in [pygame.K_LEFT, pygame.K_a]:
                     selected = "YES"
+                    if menu_click_sound:
+                        menu_click_sound.play()
                 elif event.key in [pygame.K_RIGHT, pygame.K_d]:
                     selected = "NO"
+                    if menu_click_sound:
+                        menu_click_sound.play()
+                elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                    if event.type == pygame.KEYDOWN:
+                     if not typewriter_done or buttons_alpha < 255:
+                        letter_states = [1.0] * len(full_text)
+                    typewriter_done = True
+                    buttons_alpha = 255
+                elif event.key in [pygame.K_LEFT, pygame.K_a]:
+                    selected = "YES"
+                    if menu_click_sound:
+                        menu_click_sound.play()
+                elif event.key in [pygame.K_RIGHT, pygame.K_d]:
+                    selected = "NO"
+                    if menu_click_sound:
+                        menu_click_sound.play()
                 elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                     if selected == "YES":
                         return True, initials  # returns initials to breakout
@@ -240,8 +277,26 @@ def end_screen(screen, win=True, score=500):
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if yes_button and yes_button.collidepoint(event.pos):
+                    if menu_click_sound:
+                        menu_click_sound.play()                   
                     return True, initials  # mouse click confirm
                 elif no_button and no_button.collidepoint(event.pos):
+                    if menu_click_sound:
+                        menu_click_sound.play()
+                    return False, initials
+                    if selected == "YES":
+                        return True, initials  # returns initials to breakout
+                    else:
+                        return False, initials
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if yes_button and yes_button.collidepoint(event.pos):
+                    if menu_click_sound:
+                        menu_click_sound.play()                   
+                    return True, initials  # mouse click confirm
+                elif no_button and no_button.collidepoint(event.pos):
+                    if menu_click_sound:
+                        menu_click_sound.play()
                     return False, initials
 
         pygame.display.flip()
