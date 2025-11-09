@@ -190,7 +190,6 @@ def end_screen(screen, win=True, score=500):
         draw_animated_text(screen, full_text, letter_states, game_font, text_color,
                           (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))
 
-        # --- Once animation done, ask for initials (new section I added) ---
         if typewriter_done and not initials:
             initials = ""
             max_letters = 3
