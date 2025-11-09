@@ -1,4 +1,6 @@
 import pygame
+from pygame.mixer import Sound
+
 import common
 import os
 
@@ -22,62 +24,95 @@ font = pygame.font.Font(pixel_font_path, 36)
 # Set up the initial position and speed of the paddle
 BAR_WIDTH = 200
 BAR_HEIGHT = 20
-bar_x = (SCREEN_WIDTH - BAR_WIDTH) // 2
-bar_y = SCREEN_HEIGHT - BAR_HEIGHT - 100
-speed = 5
+bar_x = 0
+bar_y = 0
+speed = 0
 
 # Set up the initial position and velocity of the ball
-ball_radius = 10
-ball_position = pygame.Vector2(SCREEN_WIDTH // 2, bar_y - ball_radius - 1)
+ball_radius = 0
+ball_position = pygame.Vector2(0, 0)
 ball_velocity = pygame.Vector2(0, 0)
-ball_max_velocity_x = 5
+ball_max_velocity_x = 0
 
 clock = pygame.time.Clock()
-delta_time = 1
+delta_time = 0
 pause_requested = False
-win = False
+win = None
 
-# Load background image
-try:
-    background = pygame.image.load(os.path.join(ROOT_PATH, 'media', 'graphics', 'background', 'back-black-wall-border.png'))
-    background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
-except FileNotFoundError:
-    print("Warning: Could not load background image. Using black background.")
-    background = None
+# Audio
+wall_sound = None
+paddle_sound = None
+brick_sound = None
+lose_life_sound = None
+
+# Images
+paddle_image = None
+background = None
 
 # Initialize the mixer for sound
 pygame.mixer.init()
 
-# Load sound effects
-try:
-    wall_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_wall-hit.wav'))
-    paddle_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_paddle-hit.wav'))
-    brick_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_brick-hit.ogg'))
-    lose_life_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_lose-lives.wav'))
-except FileNotFoundError:
-    print("Warning: Could not load sound files. Game will run without sound.")
-    wall_sound = None
-    paddle_sound = None
-    brick_sound = None
-    lose_life_sound = None
+# Reset globals
+def init():
+    global BAR_WIDTH, BAR_HEIGHT, bar_x, bar_y, speed, ball_radius, ball_position, \
+        ball_velocity, ball_max_velocity_x, clock, delta_time, pause_requested, win
 
-# Load paddle image
-try:
-    paddle_image = pygame.image.load(os.path.join(ROOT_PATH, 'media', 'graphics', 'paddle', 'paddle.png'))
-    paddle_image = pygame.transform.scale(paddle_image, (BAR_WIDTH, BAR_HEIGHT))
-except FileNotFoundError:
-    paddle_image = None
-    print("Warning: Could not load paddle image")
+    # Set up the initial position and speed of the paddle
+    bar_x = (SCREEN_WIDTH - BAR_WIDTH) // 2
+    bar_y = SCREEN_HEIGHT - BAR_HEIGHT - 100
+    speed = 5
+
+    # Set up the initial position and velocity of the ball
+    ball_radius = 10
+    ball_position = pygame.Vector2(SCREEN_WIDTH // 2, bar_y - ball_radius - 1)
+    ball_velocity = pygame.Vector2(0, 0)
+    ball_max_velocity_x = 5
+
+    clock = pygame.time.Clock()
+    delta_time = 0
+    pause_requested = False
+    win = None
+
+    # Load audio and image files
+    load_assets()
+
+def load_assets():
+    global wall_sound, paddle_sound, brick_sound, lose_life_sound, paddle_image, background
+
+    # Load sound effects
+    try:
+        wall_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_wall-hit.wav'))
+        paddle_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_paddle-hit.wav'))
+        brick_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_brick-hit.ogg'))
+        lose_life_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_lose-lives.wav'))
+    except FileNotFoundError:
+        print("Warning: Could not load sound files. Game will run without sound.")
+
+    # Load paddle image
+    try:
+        paddle_image = pygame.image.load(os.path.join(ROOT_PATH, 'media', 'graphics', 'paddle', 'paddle.png'))
+        paddle_image = pygame.transform.scale(paddle_image, (BAR_WIDTH, BAR_HEIGHT))
+    except FileNotFoundError:
+        print("Warning: Could not load paddle image")
+
+    # Load background image
+    try:
+        background = pygame.image.load(
+            os.path.join(ROOT_PATH, 'media', 'graphics', 'background', 'back-black-wall-border.png'))
+        background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    except FileNotFoundError:
+        print("Warning: Could not load background image. Using black background.")
 
 # This controls the initial setup of the breakout game and calls the game loop function
-def main_controller(screen, debug_mode=False):
+def main_controller(screen, debug_mode=""):
+    init()
     level = 1
 
     # Set up the screen
     pygame.display.set_caption("Breakout Game")
     # Initialize the scoreboard for tracking score, lives, and high score
     scoreboard = ScoreBoard(screen)
-    if debug_mode:
+    if debug_mode == "one_block":
         level = 0
         scoreboard.lives = 1
 
@@ -92,11 +127,14 @@ def main_controller(screen, debug_mode=False):
 
     running = True
     while running:
-        running = game_loop(screen, scoreboard, timer, blocks)
+        running = game_loop(screen, scoreboard, timer, blocks, debug_mode)
 
     # Added initials handling from win_lose screen + high score save with time
-    replay, initials = end_screen(screen, win, scoreboard.score)
-    scoreboard.save_high_score(initials=initials, current_time=timer.get_time())
+    replay = False
+    if win is not None:
+        replay, initials = end_screen(screen, win, scoreboard.score)
+        scoreboard.save_high_score(initials=initials, current_time=timer.get_time())
+
     return replay
 
 def define_blocks(screen, level, wall_padding=WALL_PADDING):
@@ -137,7 +175,7 @@ def define_blocks(screen, level, wall_padding=WALL_PADDING):
 
     return blocks
 
-def game_loop(screen, scoreboard, timer, blocks, debug_mode=False):
+def game_loop(screen, scoreboard, timer, blocks, debug_mode):
     global ball_position, pause_requested, delta_time
 
     # Draw walls, paddle, ball, scoreboard, and timer
@@ -169,14 +207,16 @@ def game_loop(screen, scoreboard, timer, blocks, debug_mode=False):
 
     # Check if countdown time has run out (for countdown mode)
     if debug_mode == "countdown" and timer.get_time() <= 0:
-        # scoreboard.lives = 0
+        set_win(False)
         return False
 
     # Pause handling
     if pause_requested:
-        if not pause_game(screen):
+        if not pause_game(screen, timer):
             # Player pressed quit on pause menu
             return False
+        else:
+            timer.resume()
 
     # Update the timer and display
     timer.update()
@@ -265,7 +305,7 @@ def detect_collision(ball, blocks):
         del block
 
         # PLAY BRICK SOUND
-        if brick_sound:
+        if isinstance(brick_sound, Sound) :
             brick_sound.play()
 
         score = 50
@@ -299,21 +339,21 @@ def wall_check(walls):
     if ball_position.x - ball_radius <= walls.left:
         ball_velocity.x *= -1
         ball_position.x = walls.left + ball_radius
-        if wall_sound:
+        if isinstance(wall_sound, Sound):
             wall_sound.play()
 
     # Right wall
     if ball_position.x + ball_radius >= walls.right:
         ball_velocity.x *= -1
         ball_position.x = walls.right - ball_radius
-        if wall_sound:
+        if isinstance(wall_sound, Sound):
             wall_sound.play()
 
     # Top wall
     if ball_position.y - ball_radius <= walls.top:
         ball_velocity.y *= -1
         ball_position.y = walls.top + ball_radius
-        if wall_sound:
+        if isinstance(wall_sound, Sound):
             wall_sound.play()
 
 def paddle_check(bar, ball):
@@ -324,7 +364,7 @@ def paddle_check(bar, ball):
         # Nudge the ball above the paddle to avoid sticking
         ball_position.y = bar.top - ball_radius - 1
         # PLAY PADDLE SOUND
-        if paddle_sound:
+        if isinstance(paddle_sound, Sound):
             paddle_sound.play()
 
 def get_x_angle(bar, ball):
@@ -338,7 +378,8 @@ def get_x_angle(bar, ball):
 def update_scoreboard(screen, scoreboard, timer):
     global ball_position, ball_velocity, bar_x
     scoreboard.lose_life()
-    lose_life_sound.play()
+    if isinstance(lose_life_sound, Sound):
+        lose_life_sound.play()
     timer.pause()  # pause timer when a life is lost
 
     if scoreboard.lives > 0:
@@ -359,12 +400,13 @@ def update_scoreboard(screen, scoreboard, timer):
         # Out of lives, end game
         return False
 
-def set_win():
+def set_win(state=True):
     global win
-    win = True
+    win = state
 
-def pause_game(screen):
+def pause_game(screen, timer):
     global pause_requested
+    timer.pause()
 
     snapshot = screen.copy()
     choice = pause_overlay(snapshot)
@@ -374,7 +416,7 @@ def pause_game(screen):
     pause_requested = False
     return True
 
-def play(screen, debug_mode=False):
+def play(screen, debug_mode=""):
     return main_controller(screen, debug_mode)
 
 if __name__ == "__main__":
