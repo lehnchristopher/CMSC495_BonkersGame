@@ -397,6 +397,7 @@ def update_scoreboard(screen, scoreboard, timer):
         return True
     else:
         timer.pause()  # stop timer on final life loss
+        set_win(False)
         # Out of lives, end game
         return False
 
