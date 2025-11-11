@@ -1,8 +1,9 @@
+import os
 import sys
 import pygame
 import common
 
-from common import RED, WHITE, GREEN, BLUE, SCREEN_WIDTH, SCREEN_HEIGHT
+from common import RED, WHITE, GREEN, BLUE, SCREEN_WIDTH, SCREEN_HEIGHT, ROOT_PATH
 from scenes import breakout, how_to, highscores
 
 # ---------- SOUND & GRAPHICS LOADING ----------
@@ -12,14 +13,14 @@ pygame.mixer.init()
 # Load sound effects
 
 try:
-    menu_click_sound = pygame.mixer.Sound("media/audio/media_audio_selection_click.wav")
+    menu_click_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "media_audio_selection_click.wav"))
 except:
     print("Warning: Could not load menu click sound.")
     menu_click_sound = None
 
 # Load background image
 try:
-    menu_background = pygame.image.load("media/graphics/background/back-landscape-grid.png")
+    menu_background = pygame.image.load(os.path.join(ROOT_PATH, "media", "graphics", "background", "back-landscape-grid.png"))
 except:
     print("Warning: Could not load background image.")
     menu_background = None
@@ -153,7 +154,7 @@ def open_test_menu(screen):
         pygame.time.Clock().tick(60)
 
 # ---------- GAME LAUNCHER ----------
-def play_breakout(screen, debug_mode=False):
+def play_breakout(screen, debug_mode=""):
     # Starts the breakout gameplay (normal, debug, or countdown)
     replay = True
     while replay:

@@ -3,20 +3,22 @@ import pygame
 import common
 import os
 
+from common import ROOT_PATH
+
 # Initialize the mixer for sound
 pygame.mixer.init()
 
 # Load sound effects
 
 try:
-    menu_click_sound = pygame.mixer.Sound("media/audio/media_audio_selection_click.wav")
+    menu_click_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "media_audio_selection_click.wav"))
 except:
     print("Warning: Could not load menu click sound.")
     menu_click_sound = None
 
 def show_instructions(screen):
     """Simple instruction screen"""
-    font_path = os.path.join(os.path.dirname(__file__), '..', 'media', 'graphics', 'font', 'Pixeboy.ttf')
+    font_path = os.path.join(ROOT_PATH, 'media', 'graphics', 'font', 'Pixeboy.ttf')
     font = pygame.font.Font(font_path, 64)
     small_font = pygame.font.Font(font_path, 40)
 
