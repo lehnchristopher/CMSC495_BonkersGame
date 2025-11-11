@@ -141,7 +141,7 @@ def open_test_menu(screen):
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_1:
-                    play_breakout(screen, True)  # Regular debug mode
+                    play_breakout(screen, "one_block")  # Regular debug mode
                     return
                 elif event.key == pygame.K_2:
                     play_breakout(screen, "countdown")  # Countdown test mode
