@@ -2,7 +2,7 @@
 
 import pygame
 import os
-from common import SCREEN_WIDTH, SCREEN_HEIGHT
+from common import SCREEN_WIDTH, SCREEN_HEIGHT, ROOT_PATH
 
 # Constants for block spacing (used for visual alignment)
 BLOCK_WIDTH = 60
@@ -13,7 +13,7 @@ class ScoreBoard:
 
     def __init__(self, screen):
         self.screen = screen
-        font_path = os.path.join(os.path.dirname(__file__), '..', 'media', 'graphics', 'font', 'Pixeboy.ttf')
+        font_path = os.path.join(ROOT_PATH, 'media', 'graphics', 'font', 'Pixeboy.ttf')
         self.font = pygame.font.Font(font_path, 50)  # Pixel font
         self.score = 0
         self.high_score = 0
@@ -48,8 +48,7 @@ class ScoreBoard:
     # ---------- FILE HANDLING ---------- #
     def load_high_score(self):
         """Load or create records.txt to store the highest score and best time."""
-        file_path = os.path.join(os.path.dirname(__file__), "../records.txt")
-        file_path = os.path.abspath(file_path)
+        file_path = os.path.join(ROOT_PATH, "records.txt")
 
         # Create file if it does not exist
         if not os.path.exists(file_path):
@@ -72,9 +71,8 @@ class ScoreBoard:
 
     def save_high_score(self, current_time=None, initials="YOU"):
         """Save new high score and record both today's and all-time scores."""
-        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        today_file = os.path.join(base_path, "today_scores.txt")
-        alltime_file = os.path.join(base_path, "records_alltime.txt")
+        today_file = os.path.join(ROOT_PATH, "today_scores.txt")
+        alltime_file = os.path.join(ROOT_PATH, "records_alltime.txt")
 
         # Added: save player initials, score, and time to daily records
         with open(today_file, "a") as f:
@@ -106,7 +104,7 @@ class ScoreBoard:
                 f.write(f"{name} {score} {time_val}\n")
 
         # Standard single-record save for quick display on screen
-        file_path = os.path.join(base_path, "records.txt")
+        file_path = os.path.join(ROOT_PATH, "records.txt")
         if self.score > self.high_score:
             self.high_score = self.score
             if current_time is not None:

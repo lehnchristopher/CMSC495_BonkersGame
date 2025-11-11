@@ -5,3 +5,5 @@ Audio from [Rubberduck](https://opengameart.org/users/rubberduck) and [LeohPaz](
 Coin Particle from [Truezipp](https://opengameart.org/users/truezipp) on [OpenGameArt](https://opengameart.org)
 
 Assets under license [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
+
+Run `pyinstaller main.spec` to generate .exe file

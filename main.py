@@ -1,3 +1,4 @@
+import os
 import sys
 import pygame
 import common
@@ -12,14 +13,14 @@ pygame.mixer.init()
 # Load sound effects
 
 try:
-    menu_click_sound = pygame.mixer.Sound("media/audio/media_audio_selection_click.wav")
+    menu_click_sound = pygame.mixer.Sound(os.path.join(os.path.dirname(__file__), "media/audio/media_audio_selection_click.wav"))
 except:
     print("Warning: Could not load menu click sound.")
     menu_click_sound = None
 
 # Load background image
 try:
-    menu_background = pygame.image.load("media/graphics/background/back-landscape-grid.png")
+    menu_background = pygame.image.load(os.path.join(os.path.dirname(__file__), "media/graphics/background/back-landscape-grid.png"))
 except:
     print("Warning: Could not load background image.")
     menu_background = None

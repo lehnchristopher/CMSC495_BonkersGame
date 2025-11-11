@@ -11,6 +11,10 @@ from scenes.win_lose import end_screen
 from objects.timer import Timer  # Added import for new timer feature
 from scenes.pause_overlay import pause_overlay
 
+# Paddle constants
+BAR_WIDTH = 200
+BAR_HEIGHT = 20
+
 # WALL / BORDER 
 WALL_PADDING = 30          
 WALL_TOP_PADDING = 120     
@@ -419,6 +423,7 @@ def pause_game(screen, timer):
 
 def play(screen, debug_mode=""):
     return main_controller(screen, debug_mode)
+
 
 if __name__ == "__main__":
     # Initialize Pygame
