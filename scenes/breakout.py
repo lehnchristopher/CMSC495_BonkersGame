@@ -11,9 +11,6 @@ from scenes.win_lose import end_screen
 from objects.timer import Timer  # Added import for new timer feature
 from scenes.pause_overlay import pause_overlay
 
-# Paddle constants
-BAR_WIDTH = 200
-BAR_HEIGHT = 20
 
 # WALL / BORDER 
 WALL_PADDING = 30          

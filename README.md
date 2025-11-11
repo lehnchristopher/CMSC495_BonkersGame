@@ -6,4 +6,4 @@ Coin Particle from [Truezipp](https://opengameart.org/users/truezipp) on [OpenGa
 
 Assets under license [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 
-Run `pyinstaller main.spec` to generate .exe file
+Run `pyinstaller main.spec` to generate .exe file. The file will be generated under ./dist/

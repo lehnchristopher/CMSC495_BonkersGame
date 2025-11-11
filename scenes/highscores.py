@@ -16,7 +16,7 @@ pygame.mixer.init()
 
 try:
     menu_click_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "media_audio_selection_click.wav"))
-except:
+except FileNotFoundError:
     print("Warning: Could not load menu click sound.")
     menu_click_sound = None
 
