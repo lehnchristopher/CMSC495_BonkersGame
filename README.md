@@ -1,15 +1,16 @@
-***Constantly evolving and in progress throughout project assignment submissions***
-***Formatting & content in progress***
+[***Constantly evolving and in progress throughout project assignment submissions***]
 
-BREAKOUT BONKERS
+[***Formatting & content in progress***]
+
+## BREAKOUT BONKERS
 
 A simple Python Breakout game optimized for short, offline play during a 10 to 15-minute commute for that quick “pick-me-up” session from start to end. It is geared towards the casual gamer with short durations of play and emphasis on simple gameplay, immediate startup and shutdown, reliability (no crashes or restarts), and responsive input/feedback throughout the play session.
 
 ## Website & Code Reference
-***IN PROGRESS***
+[***IN PROGRESS***]
 
 ## HOW TO RUN APPLICATION
-(Standalone executable: ***IN PROGRESS***)
+(Standalone executable: [***IN PROGRESS***])
 1. Download Release Zip File labeled, "CMSC495_BonkersGame-0.1.0-week4"
 2. Extract Contents
 3. (Using PyCharm) Open source code folder
@@ -18,13 +19,14 @@ A simple Python Breakout game optimized for short, offline play during a 10 to 1
 
 ## Current Requirements to Run Game Application
 Python 3.11+
+
 PyCharm 3.13+ (IDE)
 
 ## Performance & Optimizations
-***IN PROGRESS****
+[***IN PROGRESS****]
 
 ## Additional Information & Progress Statistics of Game Application
-***IN PROGRESS***
+[***IN PROGRESS***]
 
 ## Assets
 
