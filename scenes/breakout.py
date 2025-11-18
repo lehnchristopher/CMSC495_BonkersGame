@@ -150,6 +150,13 @@ def main_controller(screen, debug_mode=""):
     coins = []
     powerups = []
     blasts = []
+
+    # Reset power-ups at start of game
+    global blast_active, blast_timer, paddle_shrink_active, paddle_shrink_timer
+    blast_active = False
+    blast_timer = 0
+    paddle_shrink_active = False
+    paddle_shrink_timer = 0
   
 
     running = True
@@ -342,21 +349,23 @@ def game_loop(screen, scoreboard, timer, blocks, debug_mode, level, particles, c
     
         # Shoot a blast every 10 frames (0.16 seconds)
         if blast_timer % 10 == 0:
-            blasts.append(BlueBlast(bar.centerx - 10, bar.top - 20))
+            if blast_timer % 20 == 0:
+                blasts.append(BlueBlast(bar.left + 10, bar.top - 20))   # Left
+            else:
+                blasts.append(BlueBlast(bar.right - 10, bar.top - 20))  # Right
             if blast_shoot_sound:
                 blast_shoot_sound.play()
-
-    
+        
         # Deactivate when timer runs out
         if blast_timer <= 0:
             blast_active = False
 
-            # Handle paddle shrinking
-        if paddle_shrink_active and paddle_shrink_timer > 0:
-            paddle_shrink_timer -= 1
-        
-        if paddle_shrink_active and paddle_shrink_timer <= 0:
-            paddle_shrink_active = False
+    # Handle paddle shrinking
+    if paddle_shrink_active and paddle_shrink_timer > 0:
+        paddle_shrink_timer -= 1
+    
+    if paddle_shrink_active and paddle_shrink_timer <= 0:
+        paddle_shrink_active = False
 
     # Update and draw blasts
     for blast in blasts[:]:
@@ -395,7 +404,7 @@ def game_loop(screen, scoreboard, timer, blocks, debug_mode, level, particles, c
         return "level_complete"
 
     if not move_ball(screen, walls, bar, ball):
-        if not update_scoreboard(screen, scoreboard, timer):
+        if not update_scoreboard(screen, scoreboard, timer, blasts, coins, powerups):
             return "game_over"
 
     if debug_mode == "countdown" and timer.get_time() <= 0:
@@ -488,15 +497,22 @@ def handle_input(bar, ball, timer):
                 pause_requested = True
 
     keys = pygame.key.get_pressed()
+    
+    # Only allow paddle movement after ball is launched
+    if ball_velocity.y != 0:
+        # Small paddle width for boundary checks
+        if paddle_shrink_active:
+            paddle_width = small_paddle_width
+        else:
+            paddle_width = BAR_WIDTH
 
-    if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-        if bar_x + BAR_WIDTH < SCREEN_WIDTH - WALL_PADDING + 2 and not (bar_x > ball_position.x - ball_radius and ball_velocity.y == 0):
-            bar_x += speed
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            if bar_x + paddle_width < SCREEN_WIDTH - WALL_PADDING + 2:
+                bar_x += speed
 
-    if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        if bar_x > WALL_PADDING - 2 and not (bar_x + BAR_WIDTH < ball_position.x + ball_radius and ball_velocity.y == 0):
-            bar_x -= speed
-
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            if bar_x > WALL_PADDING - 2:
+                bar_x -= speed
     return True
 
 
@@ -540,11 +556,19 @@ def detect_collision(ball, blocks, particles, coins, powerups):
             if random.random() < 0.40:
                 coins.append(Coin(block.rect.centerx - 15, block.rect.centery))
             
-            # 20% chance to drop a powerup
+           # 20% chance to drop a powerup
             if random.random() < 0.20:
-                # 50/50 chance
-                powerup_type = random.choice(["blast", "small_paddle"])
-                powerups.append(PowerUp(block.rect.centerx - 15, block.rect.centery, powerup_type))
+                # Choose power-up type, avoiding active ones
+                available_powerups = []
+                if not blast_active:
+                    available_powerups.append("blast")
+                if not paddle_shrink_active:
+                    available_powerups.append("small_paddle")
+                
+                # Only drop if at least one type is available
+                if available_powerups:
+                    powerup_type = random.choice(available_powerups)
+                    powerups.append(PowerUp(block.rect.centerx - 15, block.rect.centery, powerup_type))
             
             del blocks[block_index]
 
@@ -609,8 +633,8 @@ def get_x_angle(bar, ball):
     ratio = ball_max_velocity_x / (BAR_WIDTH / 2)
     return ball_offset * ratio
 
-def update_scoreboard(screen, scoreboard, timer):
-    global ball_position, ball_velocity, bar_x
+def update_scoreboard(screen, scoreboard, timer, blasts, coins, powerups):
+    global ball_position, ball_velocity, bar_x, blast_active, blast_timer, paddle_shrink_active, paddle_shrink_timer
     scoreboard.lose_life()
     if isinstance(lose_life_sound, Sound):
         lose_life_sound.play()
@@ -619,6 +643,17 @@ def update_scoreboard(screen, scoreboard, timer):
 
     if scoreboard.lives > 0:
         reset_ball_and_paddle()
+
+        # Reset power-ups when losing a life
+        blast_active = False
+        blast_timer = 0
+        paddle_shrink_active = False
+        paddle_shrink_timer = 0
+
+        # Clear all falling items
+        blasts.clear()
+        coins.clear()
+        powerups.clear()
 
         message = font.render(f"Lives Left: {scoreboard.lives}", True, WHITE)
         screen.blit(message, (SCREEN_WIDTH // 2 - message.get_width() // 2, SCREEN_HEIGHT // 2))
