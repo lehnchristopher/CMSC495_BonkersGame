@@ -153,12 +153,12 @@ def init():
 
     bar_x = (SCREEN_WIDTH - BAR_WIDTH) // 2
     bar_y = SCREEN_HEIGHT - BAR_HEIGHT - 100
-    speed = 10
+    speed = 8
 
     ball_radius = 10
     ball_position = pygame.Vector2(SCREEN_WIDTH // 2, bar_y - ball_radius - 4)
     ball_velocity = pygame.Vector2(0, 0)
-    ball_max_velocity_x = 7
+    ball_max_velocity_x = 6
 
     clock = pygame.time.Clock()
     delta_time = 0
@@ -757,7 +757,7 @@ def handle_input(bar, main_ball):
                 if abs(main_ball["vel"].x) < 0.5:
                     main_ball["vel"].x = 0
 
-                main_ball["vel"].y = -7
+                main_ball["vel"].y = -6
 
                 # start or resume timers
                 if isinstance(game_timer, Timer):
