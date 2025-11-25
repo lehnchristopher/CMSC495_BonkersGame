@@ -4,14 +4,15 @@ A simple Python Breakout game optimized for short, offline play during a 10 to 1
 
 ## HOW TO RUN APPLICATION
 (Standalone executable: [***IN PROGRESS***])
+
 1. Download Release Zip File labeled, "CMSC495_BonkersGame-0.1.0-week4"
 2. Extract Contents
 3. (Using PyCharm) Open source code folder
 4. Open a .py file (such as main.py)
 5. Select RUN
 
-## Current Requirements to Run Game Application
-Python 3.11+ | PyCharm 3.13+ (IDE) | Pygame | Windows OS
+## Current Dependencies/Requirements to Run Game Application
+Python 3.11+ | PyCharm 3.13+ (IDE) | Pygame |  Windows OS
 
 
 ## Assets
