@@ -3,8 +3,18 @@
 A simple Python Breakout game optimized for short, offline play during a 10 to 15-minute commute for that quick “pick-me-up” session from start to end. It is geared towards the casual gamer with short durations of play and emphasis on simple gameplay, immediate startup and shutdown, reliability (no crashes or restarts), and responsive input/feedback throughout the play session.
 
 ## HOW TO RUN APPLICATION
-(Standalone executable: [***IN PROGRESS***])
 
+<ins>Option #1:</ins>
+	 
+Standalone executable: [COMPLETE]
+1. Download Executable
+2. Extract contents
+3. Run Program
+
+
+<ins>Option #2:</ins>
+	 
+[Run within PyCharm using GitHub source code download]:
 1. Download Release Zip File labeled, "CMSC495_BonkersGame-0.1.0-week4"
 2. Extract Contents
 3. (Using PyCharm) Open source code folder
