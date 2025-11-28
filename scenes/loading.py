@@ -4,7 +4,7 @@ from common import SCREEN_WIDTH, SCREEN_HEIGHT, BLACK, ROOT_PATH
 
 def show_loading_screen(screen, font):
     """Display loading screen with progress bar - PIXELATED RETRO STYLE"""
-    WHITE_COLOR = (255, 255, 255)  
+    WHITE_COLOR = (255, 255, 255)  # White for everything
     BAR_WIDTH = 600
     BAR_HEIGHT = 60
     BAR_X = (SCREEN_WIDTH - BAR_WIDTH) // 2
@@ -80,4 +80,4 @@ def show_loading_screen(screen, font):
         screen.blit(percent_text, percent_rect)
         
         pygame.display.flip()
-        pygame.time.wait(10) 
+        pygame.time.wait(50)  
