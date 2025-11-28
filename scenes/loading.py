@@ -4,7 +4,7 @@ from common import SCREEN_WIDTH, SCREEN_HEIGHT, BLACK, ROOT_PATH
 
 def show_loading_screen(screen, font):
     """Display loading screen with progress bar - PIXELATED RETRO STYLE"""
-    WHITE_COLOR = (255, 255, 255)  # White for everything
+    WHITE_COLOR = (255, 255, 255)  
     BAR_WIDTH = 600
     BAR_HEIGHT = 60
     BAR_X = (SCREEN_WIDTH - BAR_WIDTH) // 2
@@ -55,7 +55,7 @@ def show_loading_screen(screen, font):
         
         if blocks_to_show > 0:
             # Add padding between border and blocks
-            padding = 10  # Increased space between border and blocks
+            padding = 10  
             
             # Calculate block sizing to fit exactly 10 vertical blocks
             gap_size = 10  # Gap between blocks
@@ -80,4 +80,4 @@ def show_loading_screen(screen, font):
         screen.blit(percent_text, percent_rect)
         
         pygame.display.flip()
-        pygame.time.wait(50)  # Changed to 50ms per frame = ~5 second total
+        pygame.time.wait(10) 

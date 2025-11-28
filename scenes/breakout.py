@@ -1218,3 +1218,5 @@ def pause_game(screen):
     if choice == "menu":
         pygame.mouse.set_visible(True)
         return False
+    elif choice == "resume":
+         return True 

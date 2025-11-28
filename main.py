@@ -42,6 +42,19 @@ else:
     with open(config_path, "w") as f:
         json.dump(config, f, indent=2)
 
+# Character selection setup (Global)
+characters = [
+    {"name": "BALL", "image": "media/graphics/balls_characters/ball.png"},
+    {"name": "CRYSTAL", "image": "media/graphics/balls_characters/crystal.png"},
+    {"name": "GHOST 1", "image": "media/graphics/balls_characters/ghost 1.png"},
+    {"name": "GHOST 2", "image": "media/graphics/balls_characters/ghost 2.png"},
+    {"name": "JEFF", "image": "media/graphics/balls_characters/jeff.png"},
+    {"name": "PAC 1", "image": "media/graphics/balls_characters/Pac-1.png"},
+    {"name": "PAC 2", "image": "media/graphics/balls_characters/Pac-2.png"},
+    {"name": "STEVE", "image": "media/graphics/balls_characters/steve.png"},
+]
+
+
 
 # ---------- MAIN MENU ----------
 def main_menu():
@@ -95,20 +108,8 @@ def main_menu():
     credits_rect = pygame.Rect(button_x, button_start_y + button_spacing * 3, 300, 60)
     quit_rect = pygame.Rect(button_x, button_start_y + button_spacing * 4, 300, 60)
     
-    # Character selection setup 
-    characters = [
-        {"name": "BALL", "image": "media/graphics/balls_characters/ball.png"},
-        {"name": "CRYSTAL", "image": "media/graphics/balls_characters/crystal.png"},
-        {"name": "GHOST 1", "image": "media/graphics/balls_characters/ghost 1.png"},
-        {"name": "GHOST 2", "image": "media/graphics/balls_characters/ghost 2.png"},
-        {"name": "JEFF", "image": "media/graphics/balls_characters/jeff.png"},
-        {"name": "PAC 1", "image": "media/graphics/balls_characters/Pac-1.png"},
-        {"name": "PAC 2", "image": "media/graphics/balls_characters/Pac-2.png"},
-        {"name": "STEVE", "image": "media/graphics/balls_characters/steve.png"},
-    ]
-    
-    selected_character = 0
-    
+    selected_character = config.get("last_character", 0)
+
     character_images = []
     for char in characters:
         try:
@@ -287,6 +288,10 @@ def main_menu():
                     if left_arrow_rect.collidepoint(event.pos):
                         if menu_click_sound: menu_click_sound.play()
                         selected_character -= 1
+                        #Save to config 
+                        config["last_character"] = selected_character
+                        with open("config.json", "w") as f:
+                            json.dump(config, f, indent=2)
                 
                 # Right arrow - go to next character
                 if selected_character < len(characters) - 1:  
@@ -294,13 +299,18 @@ def main_menu():
                     if right_arrow_rect.collidepoint(event.pos):
                         if menu_click_sound: menu_click_sound.play()
                         selected_character += 1
+                        #Save to config 
+                        config["last_character"] = selected_character
+                        with open("config.json", "w") as f:
+                            json.dump(config, f, indent=2)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LCTRL:
                     open_test_menu(screen)
                 elif event.key == pygame.K_SPACE:
                     if menu_click_sound: menu_click_sound.play()
-                    play_breakout(screen)
+                    selected_char_image = characters[selected_character]["image"]
+                    play_breakout(screen, selected_char_image)
                 elif event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
@@ -414,6 +424,7 @@ def open_settings_menu(screen):
                     return
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if menu_click_sound: menu_click_sound.play()
                 return
 
         pygame.display.flip()
@@ -454,6 +465,7 @@ def show_how_to_play(screen):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if menu_click_sound: menu_click_sound.play()
                 return
 
         pygame.display.flip()
@@ -521,6 +533,7 @@ def show_credits(screen):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if menu_click_sound: menu_click_sound.play()
                 return
 
         pygame.display.flip()
@@ -562,13 +575,13 @@ def open_test_menu(screen):
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 key = event.key
-                if key == pygame.K_1: return play_breakout(screen, debug_mode="one_block")
-                if key == pygame.K_2: return play_breakout(screen, "countdown")
-                if key == pygame.K_3: return play_breakout(screen, "level_1")
-                if key == pygame.K_4: return play_breakout(screen, "level_2")
-                if key == pygame.K_5: return play_breakout(screen, "level_3")
-                if key == pygame.K_6: return play_breakout(screen, "level_4")
-                if key == pygame.K_7: return play_breakout(screen, "level_5")
+                if key == pygame.K_1: return play_breakout(screen, characters[0]["image"], debug_mode="one_block")
+                if key == pygame.K_2: return play_breakout(screen, characters[0]["image"], debug_mode="countdown")
+                if key == pygame.K_3: return play_breakout(screen, characters[0]["image"], debug_mode="level_1")
+                if key == pygame.K_4: return play_breakout(screen, characters[0]["image"], debug_mode="level_2")
+                if key == pygame.K_5: return play_breakout(screen, characters[0]["image"], debug_mode="level_3")
+                if key == pygame.K_6: return play_breakout(screen, characters[0]["image"], debug_mode="level_4")
+                if key == pygame.K_7: return play_breakout(screen, characters[0]["image"], debug_mode="level_5")
                 if key == pygame.K_ESCAPE: return
 
         pygame.display.flip()
