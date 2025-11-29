@@ -303,13 +303,13 @@ def play(screen, debug_mode=""):
 
 # --- Main Controller ---
 def main_controller(screen, debug_mode=""):
-    global game_timer, level_timer
+    global tutorial_active, tutorial_timer, tutorial_phase, cfg, game_timer, level_timer
 
     init()
-    pygame.mouse.set_visible(False)
 
-    # ---- Reset tutorial state each time a new game starts ----
-    global tutorial_active, tutorial_timer, tutorial_phase, cfg
+    # ---- Mouse visibility based on setting ----
+    mouse_on = cfg.get("mouse_enabled", False)
+    pygame.mouse.set_visible(mouse_on)
 
     tutorial_timer = 0
     tutorial_phase = "move"
@@ -342,7 +342,9 @@ def main_controller(screen, debug_mode=""):
 
     # Turn on FPS when entering a debug mode game
     global show_fps
-    show_fps = debug_mode is not False
+
+    # show FPS if debug OR user enabled it
+    show_fps = debug_mode is not False or cfg.get("show_fps", False)
 
     global debug_countdown_mode
 
@@ -402,7 +404,7 @@ def main_controller(screen, debug_mode=""):
 
     running = True
     while running:
-        status = game_loop(screen, scoreboard, game_timer, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration)
+        status = game_loop(screen, scoreboard, game_timer, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration, show_fps, cfg)
 
 
         if status == "running":
@@ -478,11 +480,13 @@ def main_controller(screen, debug_mode=""):
 
 # ================= Core Game Loop =================
 
-def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration):
+def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration, show_fps, cfg):
     global ball_position, pause_requested, delta_time, blast_active, blast_timer
     global paddle_shrink_active, paddle_shrink_timer
     global paddle_big_active, paddle_big_timer
     global level_timer
+
+    show_fps = (debug_mode is not False) or cfg.get("show_fps", False)
 
     walls = draw_wall(screen)
     bar = draw_bar(screen)
@@ -807,13 +811,16 @@ def reset_ball_and_paddle():
 def handle_input(bar, main_ball):
     global pause_requested, bar_x, tutorial_active
 
+    mouse_enabled = cfg.get("mouse_enabled", False)
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             return False
 
+        # ---------- KEYBOARD ----------
         if event.type == pygame.KEYDOWN:
 
-            # -------- Always Allow Pause ( normal) --------
+            # Pause
             if event.key == pygame.K_ESCAPE:
                 if pause_sound:
                     pause_sound.set_volume(current_volume())
@@ -821,16 +828,13 @@ def handle_input(bar, main_ball):
                 pause_requested = True
                 return True
 
-            # -------- Tutorial Controls --------
+            # Tutorial: SPACE ends tutorial and launches
             if tutorial_active and event.key == pygame.K_SPACE:
-
                 tutorial_active = False
 
-                # Launch ball
                 balls[0]["vel"].x = get_x_angle(bar, balls[0])
                 balls[0]["vel"].y = -5
 
-                # Resume timers
                 if isinstance(game_timer, Timer):
                     if game_timer.start_time is None:
                         game_timer.start()
@@ -845,24 +849,20 @@ def handle_input(bar, main_ball):
 
                 return True
 
-            # -------- Normal Launch --------
-            if event.key == pygame.K_SPACE and main_ball["vel"].length() == 0:
-
-                # center ball if aligned close enough
+            # Normal launch with SPACE (no tutorial)
+            if event.key == pygame.K_SPACE and main_ball["vel"].length() == 0 and not tutorial_active:
                 bar_center = bar.centerx
                 ball_center = main_ball["pos"].x
 
                 if abs(ball_center - bar_center) < 3:
                     main_ball["pos"].x = bar_center
 
-                # apply bounce angle
                 main_ball["vel"].x = get_x_angle(bar, main_ball)
                 if abs(main_ball["vel"].x) < 0.5:
                     main_ball["vel"].x = 0
 
                 main_ball["vel"].y = -6
 
-                # start or resume timers
                 if isinstance(game_timer, Timer):
                     if game_timer.start_time is None:
                         game_timer.start()
@@ -877,13 +877,65 @@ def handle_input(bar, main_ball):
 
                 return True
 
-    # -------- Paddle Movement --------
-    keys = pygame.key.get_pressed()
-    paddle_width = small_paddle_width if paddle_shrink_active else BAR_WIDTH
+        # ---------- MOUSE CLICK LAUNCH ----------
+        if mouse_enabled and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 
+            # Tutorial: left click ends tutorial and launches
+            if tutorial_active:
+                tutorial_active = False
+
+                balls[0]["vel"].x = get_x_angle(bar, balls[0])
+                balls[0]["vel"].y = -5
+
+                if isinstance(game_timer, Timer):
+                    if game_timer.start_time is None:
+                        game_timer.start()
+                    else:
+                        game_timer.resume()
+
+                if isinstance(level_timer, Timer):
+                    if level_timer.start_time is None:
+                        level_timer.start()
+                    else:
+                        level_timer.resume()
+
+                return True
+
+            # Normal launch with click (no tutorial)
+            if main_ball["vel"].length() == 0:
+                bar_center = bar.centerx
+                ball_center = main_ball["pos"].x
+
+                if abs(ball_center - bar_center) < 3:
+                    main_ball["pos"].x = bar_center
+
+                main_ball["vel"].x = get_x_angle(bar, main_ball)
+                if abs(main_ball["vel"].x) < 0.5:
+                    main_ball["vel"].x = 0
+
+                main_ball["vel"].y = -6
+
+                if isinstance(game_timer, Timer):
+                    if game_timer.start_time is None:
+                        game_timer.start()
+                    else:
+                        game_timer.resume()
+
+                if isinstance(level_timer, Timer):
+                    if level_timer.start_time is None:
+                        level_timer.start()
+                    else:
+                        level_timer.resume()
+
+                return True
+
+    # ---------- PADDLE MOVEMENT ----------
+    keys = pygame.key.get_pressed()
+    paddle_width = int(getattr(draw_bar, "width", BAR_WIDTH))
+
+    # Keyboard BEFORE launch
     if main_ball["vel"].length() == 0:
         ball_x = main_ball["pos"].x
-
         left_limit = int(ball_x - (paddle_width - ball_radius * 2))
         right_limit = int(ball_x - ball_radius * 2)
 
@@ -892,17 +944,49 @@ def handle_input(bar, main_ball):
 
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             bar_x = min(bar_x + speed, right_limit)
+
+    # Keyboard AFTER launch
     else:
         edge_adjust = 8
+        current_width = int(getattr(draw_bar, "width", BAR_WIDTH))
 
         min_x = WALL_PADDING - edge_adjust
-        max_x = SCREEN_WIDTH - WALL_PADDING - paddle_width + edge_adjust
+        max_x = SCREEN_WIDTH - WALL_PADDING - current_width + edge_adjust
 
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             bar_x = max(bar_x - speed, min_x)
 
         if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             bar_x = min(bar_x + speed, max_x)
+
+    # ---------- MOUSE MOVEMENT (both states) ----------
+    if mouse_enabled:
+        mx = pygame.mouse.get_pos()[0]
+        target_x = mx - (paddle_width // 2)
+
+        current_width = int(getattr(draw_bar, "width", BAR_WIDTH))
+
+        if main_ball["vel"].length() == 0:
+            # Pre-launch limits
+            ball_x = main_ball["pos"].x
+            left_limit = int(ball_x - (paddle_width - ball_radius * 2))
+            right_limit = int(ball_x - ball_radius * 2)
+            target_x = max(left_limit, min(target_x, right_limit))
+        else:
+            # Wall limits
+            target_x = max(
+                WALL_PADDING,
+                min(target_x, SCREEN_WIDTH - WALL_PADDING - current_width)
+            )
+
+        screen_distance = (SCREEN_WIDTH - WALL_PADDING * 2 - paddle_width)
+        frames_needed = 120
+        max_step = screen_distance / frames_needed
+
+        if bar_x < target_x:
+            bar_x = min(bar_x + max_step, target_x)
+        elif bar_x > target_x:
+            bar_x = max(bar_x - max_step, target_x)
 
     return True
 
