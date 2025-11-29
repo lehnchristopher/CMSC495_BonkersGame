@@ -7,14 +7,6 @@ import json
 from common import RED, WHITE, GREEN, BLUE, SCREEN_WIDTH, SCREEN_HEIGHT, ROOT_PATH
 from scenes import breakout, highscores
 
-pygame.mixer.init()
-
-try:
-    menu_click_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "media_audio_selection_click.wav"))
-except:
-    print("Warning: Could not load menu click sound.")
-    menu_click_sound = None
-
 try:
     menu_background = pygame.image.load(os.path.join(ROOT_PATH, "media", "graphics", "background", "back-landscape-grid.png"))
 except:
@@ -30,14 +22,50 @@ if os.path.exists(config_path):
 
     # ensure key exists
     config.setdefault("tutorial_enabled", True)
-
 else:
     config = {
         "tutorial_enabled": True
     }
 
-    with open(config_path, "w") as f:
-        json.dump(config, f, indent=2)
+# --- Settings defaults ---
+config.setdefault("sound_volume", 5)
+config.setdefault("music_volume", 5)
+config.setdefault("show_fps", False)
+config.setdefault("mouse_enabled", False)
+
+def save_config():
+    try:
+        with open(config_path, "w") as f:
+            json.dump(config, f, indent=2)
+    except:
+        print("Warning: Could not save config.json")
+
+save_config()
+
+def current_sfx_volume():
+    try:
+        with open(config_path, "r") as f:
+            cfg_local = json.load(f)
+        level = cfg_local.get("sound_volume", 5)
+        try:
+            level = int(level)
+        except:
+            level = 5
+        level = max(0, min(5, level))
+        return level / 5.0
+    except:
+        return 1.0
+
+pygame.mixer.init()
+
+try:
+    menu_click_sound = pygame.mixer.Sound(
+        os.path.join(ROOT_PATH, "media", "audio", "media_audio_selection_click.wav")
+    )
+    menu_click_sound.set_volume(current_sfx_volume())
+except:
+    print("Warning: Could not load menu click sound.")
+    menu_click_sound = None
 
 
 # ---------- MAIN MENU ----------
@@ -135,23 +163,33 @@ def main_menu():
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if play_rect.collidepoint(event.pos):
-                    if menu_click_sound: menu_click_sound.play()
+                    if menu_click_sound and current_sfx_volume() > 0:
+                        menu_click_sound.set_volume(current_sfx_volume())
+                        menu_click_sound.play()
                     play_breakout(screen)
 
                 elif high_rect.collidepoint(event.pos):
-                    if menu_click_sound: menu_click_sound.play()
+                    if menu_click_sound and current_sfx_volume() > 0:
+                        menu_click_sound.set_volume(current_sfx_volume())
+                        menu_click_sound.play()
                     highscores.show_high_scores(screen)
 
                 elif settings_rect.collidepoint(event.pos):
-                    if menu_click_sound: menu_click_sound.play()
+                    if menu_click_sound and current_sfx_volume() > 0:
+                        menu_click_sound.set_volume(current_sfx_volume())
+                        menu_click_sound.play()
                     open_settings_menu(screen)
 
                 elif credits_rect.collidepoint(event.pos):
-                    if menu_click_sound: menu_click_sound.play()
+                    if menu_click_sound and current_sfx_volume() > 0:
+                        menu_click_sound.set_volume(current_sfx_volume())
+                        menu_click_sound.play()
                     show_credits(screen)
 
                 elif quit_rect.collidepoint(event.pos):
-                    if menu_click_sound: menu_click_sound.play()
+                    if menu_click_sound and current_sfx_volume() > 0:
+                        menu_click_sound.set_volume(current_sfx_volume())
+                        menu_click_sound.play()
                     pygame.quit()
                     sys.exit()
 
@@ -159,7 +197,9 @@ def main_menu():
                 if event.key == pygame.K_LCTRL:
                     open_test_menu(screen)
                 elif event.key == pygame.K_SPACE:
-                    if menu_click_sound: menu_click_sound.play()
+                    if menu_click_sound and current_sfx_volume() > 0:
+                        menu_click_sound.set_volume(current_sfx_volume())
+                        menu_click_sound.play()
                     play_breakout(screen)
                 elif event.key == pygame.K_ESCAPE:
                     pygame.quit()
@@ -189,8 +229,7 @@ def open_settings_menu(screen):
     for label, key, _, _ in options:
         config.setdefault(key, False)
 
-    with open("config.json", "w") as f:
-        json.dump(config, f, indent=2)
+    save_config()
 
     # ---- COLUMN LAYOUT ----
     col_label_x = SCREEN_WIDTH // 2 - 310
@@ -203,9 +242,39 @@ def open_settings_menu(screen):
 
     # Build clickable rectangles for each row
     checkbox_rects = []
+    volume_minus_rects = {}
+    volume_plus_rects = {}
+    volume_value_rects = {}
 
-    for i, (_, key, _, _) in enumerate(options):
-        checkbox = pygame.Rect(col_checkbox_x, start_y + i * spacing, 36, 36)
+    for i, (label, key, unfinished, note) in enumerate(options):
+        y = start_y + i * spacing
+
+        # --- Special case: Sound Volume ---
+        if label == "Sound Volume":
+            minus = pygame.Rect(col_state_x + 40, y, 40, 40)
+            value_rect = pygame.Rect(col_state_x + 100, y, 60, 40)
+            plus = pygame.Rect(col_state_x + 180, y, 40, 40)
+
+            volume_minus_rects["sound_volume"] = minus
+            volume_plus_rects["sound_volume"] = plus
+            volume_value_rects["sound_volume"] = value_rect
+            checkbox_rects.append((None, key))
+            continue
+
+        # --- Special case: Music Volume ---
+        if label == "Music Volume":
+            minus = pygame.Rect(col_state_x + 40, y, 40, 40)
+            value_rect = pygame.Rect(col_state_x + 100, y, 60, 40)
+            plus = pygame.Rect(col_state_x + 180, y, 40, 40)
+
+            volume_minus_rects["music_volume"] = minus
+            volume_plus_rects["music_volume"] = plus
+            volume_value_rects["music_volume"] = value_rect
+            checkbox_rects.append((None, key))
+            continue
+
+        # --- Normal checkbox rows ---
+        checkbox = pygame.Rect(col_checkbox_x, y, 36, 36)
         checkbox_rects.append((checkbox, key))
 
     how_text = small.render("How to Play", True, WHITE)
@@ -230,6 +299,43 @@ def open_settings_menu(screen):
 
             # State ON/OFF color
             state = "ON" if config.get(key) else "OFF"
+            # ----- DRAW VOLUME CONTROLS -----
+            if label == "Sound Volume":
+                minus = volume_minus_rects["sound_volume"]
+                plus = volume_plus_rects["sound_volume"]
+                value = volume_value_rects["sound_volume"]
+
+                pygame.draw.rect(screen, WHITE, minus, 3)
+                pygame.draw.rect(screen, WHITE, plus, 3)
+                pygame.draw.rect(screen, WHITE, value, 3)
+
+                minus_text = small.render("-", True, WHITE)
+                plus_text = small.render("+", True, WHITE)
+                val_text = small.render(str(config.get("sound_volume", 5)), True, WHITE)
+
+                screen.blit(minus_text, minus.move(10, 5))
+                screen.blit(plus_text, plus.move(10, 5))
+                screen.blit(val_text, value.move(10, 5))
+                continue
+
+            if label == "Music Volume":
+                minus = volume_minus_rects["music_volume"]
+                plus = volume_plus_rects["music_volume"]
+                value = volume_value_rects["music_volume"]
+
+                pygame.draw.rect(screen, WHITE, minus, 3)
+                pygame.draw.rect(screen, WHITE, plus, 3)
+                pygame.draw.rect(screen, WHITE, value, 3)
+
+                minus_text = small.render("-", True, WHITE)
+                plus_text = small.render("+", True, WHITE)
+                val_text = small.render(str(config.get("music_volume", 5)), True, WHITE)
+
+                screen.blit(minus_text, minus.move(10, 5))
+                screen.blit(plus_text, plus.move(10, 5))
+                screen.blit(val_text, value.move(10, 5))
+                continue
+
             color = GREEN if state == "ON" else RED
 
             state_text = small.render(state, True, color)
@@ -261,16 +367,51 @@ def open_settings_menu(screen):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pos = event.pos
 
+                # ------ Volume Buttons ------
+                if "sound_volume" in volume_minus_rects:
+                    if volume_minus_rects["sound_volume"].collidepoint(pos):
+                        config["sound_volume"] = max(0, config.get("sound_volume", 5) - 1)
+                        save_config()
+                        if menu_click_sound:
+                            menu_click_sound.set_volume(current_sfx_volume())
+                        try:
+                            breakout.apply_sound_volumes()
+                        except:
+                            pass
+
+                    if volume_plus_rects["sound_volume"].collidepoint(pos):
+                        config["sound_volume"] = min(5, config.get("sound_volume", 5) + 1)
+                        save_config()
+                        if menu_click_sound:
+                            menu_click_sound.set_volume(current_sfx_volume())
+                        try:
+                            breakout.apply_sound_volumes()
+                        except:
+                            pass
+
+                if "music_volume" in volume_minus_rects:
+                    if volume_minus_rects["music_volume"].collidepoint(pos):
+                        config["music_volume"] = max(0, config.get("music_volume", 5) - 1)
+                        save_config()
+                        pygame.mixer.music.set_volume(config["music_volume"] / 5.0)
+
+                    if volume_plus_rects["music_volume"].collidepoint(pos):
+                        config["music_volume"] = min(5, config.get("music_volume", 5) + 1)
+                        save_config()
+                        pygame.mixer.music.set_volume(config["music_volume"] / 5.0)
+
                 for (checkbox, key) in checkbox_rects:
-                    if checkbox.collidepoint(pos):
+                    if checkbox and checkbox.collidepoint(pos):
                         config[key] = not config[key]
-                        with open("config.json", "w") as f:
-                            json.dump(config, f, indent=2)
+                        save_config()
 
                 if how_rect.collidepoint(pos):
                     show_how_to_play(screen)
 
                 if back_rect.collidepoint(pos):
+                    if menu_click_sound and current_sfx_volume() > 0:
+                        menu_click_sound.set_volume(current_sfx_volume())
+                        menu_click_sound.play()
                     return
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -437,12 +578,13 @@ def open_test_menu(screen):
 
 # ---------- GAME LAUNCHER ----------
 def play_breakout(screen, debug_mode=False):
+    pygame.mixer.music.set_volume(config.get("music_volume", 5) / 5.0)
+
     replay = True
     while replay:
         replay = breakout.play(screen, debug_mode)
         pygame.mouse.set_visible(True)
     main_menu()
-
 
 # ---------- ENTRY ----------
 if __name__ == '__main__':

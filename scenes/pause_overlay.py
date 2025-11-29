@@ -1,6 +1,24 @@
 import pygame
 import os
+import json
 from common import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, YELLOW, ROOT_PATH
+
+# --- Config path ---
+config_path = "config.json"
+
+def current_sfx_volume():
+    """Read live sound volume (0–5) and convert to 0.0–1.0"""
+    try:
+        with open(config_path, "r") as f:
+            cfg_local = json.load(f)
+        level = cfg_local.get("sound_volume", 5)
+        try:
+            level = int(level)
+        except:
+            level = 5
+        return max(0, min(5, level)) / 5.0
+    except:
+        return 1.0
 
 # --- Pause Sounds ---
 try:
@@ -28,8 +46,10 @@ def pause_overlay(snapshot):
     # Frozen frame
     screen.blit(snapshot, (0, 0))
 
-    # Play pause sound
-    if pause_sound:
+    # Play pause sound with correct volume
+    vol = current_sfx_volume()
+    if pause_sound and vol > 0:
+        pause_sound.set_volume(vol)
         pause_sound.play()
 
     while True:
@@ -51,9 +71,14 @@ def pause_overlay(snapshot):
                 return "menu"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    if unpause_sound:
+                    # Play unpause sound with correct volume
+                    vol = current_sfx_volume()
+                    if unpause_sound and vol > 0:
+                        unpause_sound.set_volume(vol)
                         unpause_sound.play()
+
                     return "resume"
+
                 if event.key == pygame.K_q:
                     return "menu"
 

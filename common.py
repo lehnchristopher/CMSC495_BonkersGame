@@ -26,3 +26,10 @@ def draw_gradient_background(screen, top_color, bottom_color):
         g = int(top_color[1] * (1 - ratio) + bottom_color[1] * ratio)
         b = int(top_color[2] * (1 - ratio) + bottom_color[2] * ratio)
         pygame.draw.line(screen, (r, g, b), (0, y), (screen.get_width(), y))
+
+def save_config(cfg):
+    try:
+        with open("config.json", "w") as f:
+            json.dump(cfg, f, indent=4)
+    except:
+        print("Warning: Could not save config.json")

@@ -89,6 +89,8 @@ config_path = "config.json"
 if os.path.exists(config_path):
     with open(config_path, "r") as f:
         cfg = json.load(f)
+        cfg.setdefault("sound_volume", 5)
+        cfg.setdefault("music_volume", 5)
 
     # ensure key exists
     cfg.setdefault("tutorial_enabled", True)
@@ -121,6 +123,10 @@ wall_sound = None
 paddle_sound = None
 brick_sound = None
 lose_life_sound = None
+coin_sound = None
+blast_shoot_sound = None
+pause_sound = None
+unpause_sound = None
 
 paddle_image = None
 background = None
@@ -130,6 +136,17 @@ bar_y = 0
 speed = 0
 
 pygame.mixer.init()
+
+# --- Central Volume Reader ---
+def current_volume():
+    """Always read fresh sound volume (0.0 – 1.0) from config.json."""
+    try:
+        with open("config.json","r") as f:
+            c = json.load(f)
+            val = c.get("sound_volume", 5)
+            return max(0, min(5, val)) / 5.0
+    except:
+        return 1.0
 
 # --- Drop Rates ---
 DROP_TABLE = {
@@ -168,35 +185,115 @@ def init():
 
     load_assets()
 
+# ---------- Volume Helper ----------
+def apply_sound_volumes():
+    global cfg
+    try:
+        with open(config_path, "r") as f:
+            cfg = json.load(f)
+    except:
+        pass
+    try:
+        level = int(cfg.get("sound_volume", 5))
+    except:
+        level = 5
+
+    level = max(0, min(5, level))
+    vol = level / 5.0
+
+    try:
+        if wall_sound:
+            wall_sound.set_volume(vol)
+        if paddle_sound:
+            paddle_sound.set_volume(vol)
+        if brick_sound:
+            brick_sound.set_volume(vol)
+        if lose_life_sound:
+            lose_life_sound.set_volume(vol)
+        if coin_sound:
+            coin_sound.set_volume(vol)
+        if blast_shoot_sound:
+            blast_shoot_sound.set_volume(vol)
+        if pause_sound:
+            pause_sound.set_volume(vol)
+        if unpause_sound:
+            unpause_sound.set_volume(vol)
+    except:
+        pass
 
 # --- Assets ---
 def load_assets():
-    global wall_sound, paddle_sound, brick_sound, lose_life_sound, coin_sound, blast_shoot_sound, paddle_image, background
+    global wall_sound, paddle_sound, brick_sound, lose_life_sound
+    global coin_sound, blast_shoot_sound, pause_sound, unpause_sound
+    global paddle_image, background
+
+    vol = current_volume()  # always read fresh volume
 
     try:
-        wall_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_wall-hit.wav'))
-        paddle_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_paddle-hit.wav'))
-        brick_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_brick-hit.ogg'))
-        lose_life_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_lose-lives.wav'))
-        coin_sound = Sound(os.path.join(ROOT_PATH, "media", "audio", "media_audio_collect_coin.ogg"))
-        blast_shoot_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_blast_shoot.wav'))
+        wall_sound = pygame.mixer.Sound(
+            os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_wall-hit.wav')
+        )
+        wall_sound.set_volume(vol)
+
+        paddle_sound = pygame.mixer.Sound(
+            os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_paddle-hit.wav')
+        )
+        paddle_sound.set_volume(vol)
+
+        brick_sound = pygame.mixer.Sound(
+            os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_brick-hit.ogg')
+        )
+        brick_sound.set_volume(vol)
+
+        lose_life_sound = pygame.mixer.Sound(
+            os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_lose-lives.wav')
+        )
+        lose_life_sound.set_volume(vol)
+
+        coin_sound = Sound(
+            os.path.join(ROOT_PATH, "media", "audio", "media_audio_collect_coin.ogg")
+        )
+        coin_sound.set_volume(vol)
+
+        blast_shoot_sound = pygame.mixer.Sound(
+            os.path.join(ROOT_PATH, 'media', 'audio', 'media_audio_blast_shoot.wav')
+        )
+        blast_shoot_sound.set_volume(vol)
+
+        pause_sound = pygame.mixer.Sound(
+            os.path.join(ROOT_PATH, "media", "audio", "pause.mp3")
+        )
+        pause_sound.set_volume(vol)
+
+        unpause_sound = pygame.mixer.Sound(
+            os.path.join(ROOT_PATH, "media", "audio", "unpause.mp3")
+        )
+        unpause_sound.set_volume(vol)
+
     except FileNotFoundError:
-        print("Warning: Could not load sound files. Game will run without sound.")
+        print("Warning: Could not load one or more audio files.")
 
+    # Load paddle image
     try:
-        paddle_image = pygame.image.load(os.path.join(ROOT_PATH, 'media', 'graphics', 'paddle', 'paddle.png'))
+        paddle_image = pygame.image.load(
+            os.path.join(ROOT_PATH, 'media', 'graphics', 'paddle', 'paddle.png')
+        )
         paddle_image = pygame.transform.scale(paddle_image, (BAR_WIDTH, BAR_HEIGHT))
     except FileNotFoundError:
         print("Warning: Could not load paddle image")
+        paddle_image = None
 
+    # Load background
     try:
         background = pygame.image.load(
-            os.path.join(ROOT_PATH, 'media', 'graphics', 'background', 'back-black-wall-border.png'))
+            os.path.join(ROOT_PATH, 'media', 'graphics', 'background', 'back-black-wall-border.png')
+        )
         background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
     except FileNotFoundError:
-        print("Warning: Could not load background image. Using black background.")
+        background = None
+        print("Warning: Could not load background. Using plain black.")
 
-
+    apply_sound_volumes()
 # ================= Game Flow =================
 
 # --- Public Entry Point ---
@@ -716,8 +813,11 @@ def handle_input(bar, main_ball):
 
         if event.type == pygame.KEYDOWN:
 
-            # -------- Always Allow Pause (tutorial or normal) --------
+            # -------- Always Allow Pause ( normal) --------
             if event.key == pygame.K_ESCAPE:
+                if pause_sound:
+                    pause_sound.set_volume(current_volume())
+                    pause_sound.play()
                 pause_requested = True
                 return True
 
@@ -1043,9 +1143,7 @@ def draw_bar(screen):
     # --- Paddle Image Selection ---
     if paddle_shrink_active:
         tinted = paddle_image.copy()
-        # neutralize blue tone first
         tinted.fill((0, 0, 0), special_flags=pygame.BLEND_RGB_MULT)
-        # add strong bright red
         tinted.fill((255, 40, 40), special_flags=pygame.BLEND_RGB_ADD)
         current_img = tinted
     else:
@@ -1215,7 +1313,6 @@ def set_win(state=True):
 
 def pause_game(screen):
     global pause_requested
-    # --- Update active timers ---
     if isinstance(game_timer, Timer):
         game_timer.update()
     if isinstance(level_timer, Timer):
@@ -1226,6 +1323,11 @@ def pause_game(screen):
     if choice == "menu":
         pygame.mouse.set_visible(True)
         return False
+
+    if choice == "resume":
+        if unpause_sound:
+            unpause_sound.set_volume(current_volume())
+            unpause_sound.play()
 
     pygame.event.clear()
     pause_requested = False
