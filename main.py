@@ -6,6 +6,7 @@ import json
 
 from common import RED, WHITE, GREEN, BLUE, SCREEN_WIDTH, SCREEN_HEIGHT, ROOT_PATH
 from scenes import breakout, highscores
+from scenes.win_lose import draw_retro_background
 
 try:
     menu_background = pygame.image.load(os.path.join(ROOT_PATH, "media", "graphics", "background", "back-landscape-grid.png"))
@@ -210,32 +211,42 @@ def main_menu():
 
 
 def open_settings_menu(screen):
-    font = pygame.font.Font(None, 70)
-    small = pygame.font.Font(None, 40)
+    font_path = os.path.join(ROOT_PATH, "media", "graphics", "font", "Pixeboy.ttf")
+    font = pygame.font.Font(font_path, 70)
+    small = pygame.font.Font(font_path, 40)
+
+    label_colors = [
+        (0, 255, 255),
+        (255, 105, 180),
+        (255, 255, 0),
+        (255, 120, 60)
+    ]
 
     running = True
 
-    # Settings list (label, key, unfinished_flag, special_note)
+    # Settings list
     options = [
         ("Tutorial", "tutorial_enabled", False, ""),
-        ("Sound Volume", "sound_enabled", True, "(Not implemented)"),
-        ("Music Volume", "music_enabled", True, "(Not implemented)"),
-        ("Show FPS", "show_fps", True, "(Not fully implemented)"),
-        ("Mouse Control", "mouse_enabled", True, "(Not implemented)"),
-        ("Colorblind Mode", "colorblind_mode", True, "(Not implemented)")
+        ("Sound Volume", "sound_volume", False, ""),
+        ("Music Volume", "music_volume", False, ""),
+        ("Show FPS", "show_fps", False, ""),
+        ("Mouse Control", "mouse_enabled", False, ""),
     ]
 
     # Ensure all options exist in config
     for label, key, _, _ in options:
-        config.setdefault(key, False)
+        if "volume" in key:
+            config.setdefault(key, 5)
+        else:
+            config.setdefault(key, False)
 
     save_config()
 
     # ---- COLUMN LAYOUT ----
-    col_label_x = SCREEN_WIDTH // 2 - 310
-    col_state_x = SCREEN_WIDTH // 2 - 50
-    col_checkbox_x = SCREEN_WIDTH // 2 + 50
-    col_note_x = SCREEN_WIDTH // 2 + 120
+    col_label_x = SCREEN_WIDTH // 2 - 330
+    col_state_x = SCREEN_WIDTH // 2 - 40
+    col_checkbox_x = SCREEN_WIDTH // 2 + 80
+    col_note_x = SCREEN_WIDTH // 2 + 260
 
     start_y = 240
     spacing = 55
@@ -246,35 +257,37 @@ def open_settings_menu(screen):
     volume_plus_rects = {}
     volume_value_rects = {}
 
+    value_box_width = 60
+
     for i, (label, key, unfinished, note) in enumerate(options):
         y = start_y + i * spacing
 
-        # --- Special case: Sound Volume ---
+        # Sound Volume row
         if label == "Sound Volume":
-            minus = pygame.Rect(col_state_x + 40, y, 40, 40)
-            value_rect = pygame.Rect(col_state_x + 100, y, 60, 40)
-            plus = pygame.Rect(col_state_x + 180, y, 40, 40)
+            value_rect = pygame.Rect(col_checkbox_x - value_box_width // 2, y + 4, value_box_width, 40)
+            minus_rect = pygame.Rect(value_rect.left - 50, y + 4, 40, 40)
+            plus_rect = pygame.Rect(value_rect.right + 10, y + 4, 40, 40)
 
-            volume_minus_rects["sound_volume"] = minus
-            volume_plus_rects["sound_volume"] = plus
+            volume_minus_rects["sound_volume"] = minus_rect
+            volume_plus_rects["sound_volume"] = plus_rect
             volume_value_rects["sound_volume"] = value_rect
             checkbox_rects.append((None, key))
             continue
 
-        # --- Special case: Music Volume ---
+        # Music Volume row
         if label == "Music Volume":
-            minus = pygame.Rect(col_state_x + 40, y, 40, 40)
-            value_rect = pygame.Rect(col_state_x + 100, y, 60, 40)
-            plus = pygame.Rect(col_state_x + 180, y, 40, 40)
+            value_rect = pygame.Rect(col_checkbox_x - value_box_width // 2, y + 4, value_box_width, 40)
+            minus_rect = pygame.Rect(value_rect.left - 50, y + 4, 40, 40)
+            plus_rect = pygame.Rect(value_rect.right + 10, y + 4, 40, 40)
 
-            volume_minus_rects["music_volume"] = minus
-            volume_plus_rects["music_volume"] = plus
+            volume_minus_rects["music_volume"] = minus_rect
+            volume_plus_rects["music_volume"] = plus_rect
             volume_value_rects["music_volume"] = value_rect
             checkbox_rects.append((None, key))
             continue
 
-        # --- Normal checkbox rows ---
-        checkbox = pygame.Rect(col_checkbox_x, y, 36, 36)
+        # Normal checkbox rows
+        checkbox = pygame.Rect(col_checkbox_x - 18, y + 4, 36, 36)
         checkbox_rects.append((checkbox, key))
 
     how_text = small.render("How to Play", True, WHITE)
@@ -284,9 +297,9 @@ def open_settings_menu(screen):
     back_rect = back_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100))
 
     while running:
-        screen.fill((20, 20, 20))
+        draw_retro_background(screen)
 
-        title = font.render("SETTINGS", True, WHITE)
+        title = font.render("SETTINGS", True, (255, 255, 0))
         screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 150))
 
         # -------- DRAW SETTINGS --------
@@ -294,7 +307,7 @@ def open_settings_menu(screen):
             y = start_y + i * spacing
 
             # Setting name
-            txt = small.render(label, True, WHITE)
+            txt = small.render(label, True, label_colors[i % len(label_colors)])
             screen.blit(txt, (col_label_x, y))
 
             # State ON/OFF color
@@ -311,11 +324,15 @@ def open_settings_menu(screen):
 
                 minus_text = small.render("-", True, WHITE)
                 plus_text = small.render("+", True, WHITE)
-                val_text = small.render(str(config.get("sound_volume", 5)), True, WHITE)
 
+                val = str(config.get("sound_volume", 5))
+                val_surf = small.render(val, True, WHITE)
+                val_rect = val_surf.get_rect(center=value.center)
+
+                screen.blit(val_surf, val_rect)
                 screen.blit(minus_text, minus.move(10, 5))
                 screen.blit(plus_text, plus.move(10, 5))
-                screen.blit(val_text, value.move(10, 5))
+
                 continue
 
             if label == "Music Volume":
@@ -329,11 +346,15 @@ def open_settings_menu(screen):
 
                 minus_text = small.render("-", True, WHITE)
                 plus_text = small.render("+", True, WHITE)
-                val_text = small.render(str(config.get("music_volume", 5)), True, WHITE)
 
+                val = str(config.get("music_volume", 5))
+                val_surf = small.render(val, True, WHITE)
+                val_rect = val_surf.get_rect(center=value.center)
+
+                screen.blit(val_surf, val_rect)
                 screen.blit(minus_text, minus.move(10, 5))
                 screen.blit(plus_text, plus.move(10, 5))
-                screen.blit(val_text, value.move(10, 5))
+
                 continue
 
             color = GREEN if state == "ON" else RED
@@ -345,10 +366,12 @@ def open_settings_menu(screen):
             checkbox, key_ref = checkbox_rects[i]
             pygame.draw.rect(screen, WHITE, checkbox, 3)
             if config.get(key):
-                pygame.draw.line(screen, WHITE, (checkbox.left + 7, checkbox.centery),
-                                (checkbox.centerx, checkbox.bottom - 7), 4)
-                pygame.draw.line(screen, WHITE, (checkbox.centerx, checkbox.bottom - 7),
-                                (checkbox.right - 7, checkbox.top + 7), 4)
+                pygame.draw.line(screen, (255, 255, 0),  # Yellow
+                                 (checkbox.left + 6, checkbox.top + 6),
+                                 (checkbox.right - 6, checkbox.bottom - 6), 4)
+                pygame.draw.line(screen, (255, 255, 0),  # Yellow
+                                 (checkbox.right - 6, checkbox.top + 6),
+                                 (checkbox.left + 6, checkbox.bottom - 6), 4)
 
             if unfinished:
                 note_text = small.render(note, True, (180, 180, 180))
@@ -432,6 +455,14 @@ def show_how_to_play(screen):
 
         title = font.render("HOW TO PLAY", True, (255, 255, 0))
         screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 150))
+
+        underline_rect = pygame.Rect(
+            SCREEN_WIDTH // 2 - 200,
+            150 + title.get_height() + 10,
+            400,
+            4
+        )
+        pygame.draw.rect(screen, (0, 255, 255), underline_rect)
 
         lines = [
             "Use the SPACE bar to launch the ball on a new life.",
