@@ -78,6 +78,7 @@ paddle_big_timer = 0
 paddle_big_duration = 300
 
 balls = []
+last_hit_ball = None
 
 # --- Debug + Tutorial ---
 debug_countdown_mode = False
@@ -288,7 +289,10 @@ def main_controller(screen, debug_mode=""):
     blasts = []
 
     # Reset tutorial based on saved setting
-    tutorial_active = cfg.get("tutorial_enabled", True)
+    if debug_mode:
+        tutorial_active = False
+    else:
+        tutorial_active = cfg.get("tutorial_enabled", True)
     tutorial_timer = 0
     tutorial_phase = "move"
 
@@ -858,6 +862,8 @@ def wall_check_multi(ball, walls):
 
 # ---------- Paddle Collision ----------
 def paddle_check_multi(ball, bar):
+    global last_hit_ball
+
     ball_rect = pygame.Rect(
         ball["pos"].x - ball_radius,
         ball["pos"].y - ball_radius,
@@ -876,6 +882,8 @@ def paddle_check_multi(ball, bar):
 
         if isinstance(paddle_sound, Sound):
             paddle_sound.play()
+
+        last_hit_ball = ball
 
 
 def get_x_angle(bar, ball_dict):
@@ -964,16 +972,29 @@ def choose_drop():
 # ================= Powerups =================
 
 def spawn_triple_ball():
-    global balls
+    global balls, last_hit_ball
 
     if len(balls) == 0:
         return
 
-    base = balls[0]
+    if last_hit_ball in balls:
+        base = last_hit_ball
+    else:
+        base = balls[0]
+
     new_velocity = abs(base["vel"].x or 3)
 
-    balls.append({"pos": base["pos"].copy(), "vel": pygame.Vector2(-new_velocity, -5)})
-    balls.append({"pos": base["pos"].copy(), "vel": pygame.Vector2(new_velocity, -5)})
+    # --- Triple Ball Offsets ---
+    left_pos = base["pos"].copy()
+    right_pos = base["pos"].copy()
+
+    left_pos.x -= 25
+    right_pos.x += 25
+
+    balls.append({"pos": left_pos,
+                  "vel": pygame.Vector2(-new_velocity, -5)})
+    balls.append({"pos": right_pos,
+                  "vel": pygame.Vector2(new_velocity, -5)})
 
 
 # ================= UI & Drawing =================
@@ -1019,8 +1040,19 @@ def draw_bar(screen):
     bar = pygame.Rect(bar_x, bar_y, current_width, BAR_HEIGHT)
     image_y_offset = -11
 
-    if paddle_image:
-        scaled_paddle = pygame.transform.scale(paddle_image, (int(current_width), BAR_HEIGHT))
+    # --- Paddle Image Selection ---
+    if paddle_shrink_active:
+        tinted = paddle_image.copy()
+        # neutralize blue tone first
+        tinted.fill((0, 0, 0), special_flags=pygame.BLEND_RGB_MULT)
+        # add strong bright red
+        tinted.fill((255, 40, 40), special_flags=pygame.BLEND_RGB_ADD)
+        current_img = tinted
+    else:
+        current_img = paddle_image
+
+    if current_img:
+        scaled_paddle = pygame.transform.scale(current_img, (int(current_width), BAR_HEIGHT))
         screen.blit(scaled_paddle, (bar_x, bar_y + image_y_offset))
     else:
         pygame.draw.rect(screen, RED, bar)

@@ -2,6 +2,17 @@ import pygame
 import os
 from common import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, YELLOW, ROOT_PATH
 
+# --- Pause Sounds ---
+try:
+    pause_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "pause.mp3"))
+except:
+    pause_sound = None
+
+try:
+    unpause_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "unpause.mp3"))
+except:
+    unpause_sound = None
+
 
 def pause_overlay(snapshot):
     """Pause screen"""
@@ -16,6 +27,10 @@ def pause_overlay(snapshot):
 
     # Frozen frame
     screen.blit(snapshot, (0, 0))
+
+    # Play pause sound
+    if pause_sound:
+        pause_sound.play()
 
     while True:
         # Text
@@ -36,6 +51,8 @@ def pause_overlay(snapshot):
                 return "menu"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
+                    if unpause_sound:
+                        unpause_sound.play()
                     return "resume"
                 if event.key == pygame.K_q:
                     return "menu"
