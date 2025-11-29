@@ -188,12 +188,24 @@ def main_menu():
 
         for name, button_img, button_rect in button_data:
             if button_img:
-                # Draw the button image
-                screen.blit(button_img, button_rect)
+                hovered = button_rect.collidepoint(mouse_pos)
+                hover_any = hover_any or hovered
                 
-                # Check if hovered for cursor change
-                if button_rect.collidepoint(mouse_pos):
-                    hover_any = True
+                # Smooth scale animation on hover
+                target = 1.1 if hovered else 1.0
+                hover_scale[name] += (target - hover_scale[name]) * 0.15
+                
+                scale = hover_scale[name]
+                if scale != 1.0:
+                    # Scale the button
+                    scaled_w = int(button_img.get_width() * scale)
+                    scaled_h = int(button_img.get_height() * scale)
+                    scaled_img = pygame.transform.smoothscale(button_img, (scaled_w, scaled_h))
+                    scaled_rect = scaled_img.get_rect(center=button_rect.center)
+                    screen.blit(scaled_img, scaled_rect)
+                else:
+                    # Draw normal size
+                    screen.blit(button_img, button_rect)    
 
         # Draw "Select Player" section (right side)
         select_x = SCREEN_WIDTH - 450
