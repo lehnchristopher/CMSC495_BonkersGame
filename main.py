@@ -6,7 +6,10 @@ import json
 
 from common import RED, WHITE, GREEN, BLUE, SCREEN_WIDTH, SCREEN_HEIGHT, ROOT_PATH
 from scenes import breakout, highscores
+from scenes.loading import show_loading_screen
 
+# Initialize pygame FIRST
+pygame.init()
 pygame.mixer.init()
 
 try:
@@ -39,10 +42,52 @@ else:
     with open(config_path, "w") as f:
         json.dump(config, f, indent=2)
 
+# Character selection setup (Global)
+characters = [
+    {"name": "BALL", "image": "media/graphics/balls_characters/ball.png"},
+    {"name": "CRYSTAL", "image": "media/graphics/balls_characters/crystal.png"},
+    {"name": "GHOST 1", "image": "media/graphics/balls_characters/ghost 1.png"},
+    {"name": "GHOST 2", "image": "media/graphics/balls_characters/ghost 2.png"},
+    {"name": "JEFF", "image": "media/graphics/balls_characters/jeff.png"},
+    {"name": "PAC 1", "image": "media/graphics/balls_characters/Pac-1.png"},
+    {"name": "PAC 2", "image": "media/graphics/balls_characters/Pac-2.png"},
+    {"name": "STEVE", "image": "media/graphics/balls_characters/steve.png"},
+]
+
+
 
 # ---------- MAIN MENU ----------
 def main_menu():
     pygame.mouse.set_visible(True)
+
+    # Load title image
+    try:
+        title_image = pygame.image.load("media/graphics/items/breakout-game-title.png")
+        title_image = pygame.transform.scale(title_image, (400, 100))
+    except:
+        print("Warning: Could not load title image.")
+        title_image = None
+
+    # Load button images
+    try:
+        play_button_img = pygame.image.load("media/graphics/items/play-button.png")
+        highscores_button_img = pygame.image.load("media/graphics/items/highscores-button.png")
+        settings_button_img = pygame.image.load("media/graphics/items/settings-button.png")
+        credits_button_img = pygame.image.load("media/graphics/items/credits-button.png")
+        quit_button_img = pygame.image.load("media/graphics/items/quit-button.png")
+        
+        # Scale buttons to consistent size (adjust if needed)
+        button_width = 300
+        button_height = 60
+        play_button_img = pygame.transform.scale(play_button_img, (button_width, button_height))
+        highscores_button_img = pygame.transform.scale(highscores_button_img, (button_width, button_height))
+        settings_button_img = pygame.transform.scale(settings_button_img, (button_width, button_height))
+        credits_button_img = pygame.transform.scale(credits_button_img, (button_width, button_height))
+        quit_button_img = pygame.transform.scale(quit_button_img, (button_width, button_height))
+    except Exception as e:
+        print(f"Warning: Could not load button images: {e}")
+        # Fallback to text buttons if images don't load
+        play_button_img = None
 
     # Set up the screen
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -50,21 +95,59 @@ def main_menu():
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
     font = pygame.font.Font(None, 74)
     small_font = pygame.font.Font(None, 50)
+    show_loading_screen(screen, font)
 
-    # Buttons
-    title = font.render("Breakout Game", True, WHITE)
-    play_button = small_font.render("Play", True, BLUE)
-    high_button = small_font.render("High Scores", True, (255, 215, 0))
-    settings_button = small_font.render("Settings", True, (120, 200, 255))
-    quit_button = small_font.render("Quit", True, RED)
-    credits_button = small_font.render("Credits", True, (190, 60, 255))
+    # Button positions 
+    button_x = 190
+    button_start_y = 300
+    button_spacing = 80
+    
+    play_rect = pygame.Rect(button_x, button_start_y, 300, 60)
+    high_rect = pygame.Rect(button_x, button_start_y + button_spacing, 300, 60)
+    settings_rect = pygame.Rect(button_x, button_start_y + button_spacing * 2, 300, 60)
+    credits_rect = pygame.Rect(button_x, button_start_y + button_spacing * 3, 300, 60)
+    quit_rect = pygame.Rect(button_x, button_start_y + button_spacing * 4, 300, 60)
+    
+    selected_character = config.get("last_character", 0)
 
-    play_rect = play_button.get_rect(center=(SCREEN_WIDTH // 2, 300))
-    high_rect = high_button.get_rect(center=(SCREEN_WIDTH // 2, 360))
-    settings_rect = settings_button.get_rect(center=(SCREEN_WIDTH // 2, 420))
-    credits_rect = credits_button.get_rect(center=(SCREEN_WIDTH // 2, 480))
-    quit_rect = quit_button.get_rect(center=(SCREEN_WIDTH // 2, 540))
+    character_images = []
+    for char in characters:
+        try:
+            img = pygame.image.load(char["image"])
+            img = pygame.transform.scale(img, (100, 100))
+            character_images.append(img)
+        except Exception as e:
+            print(f"Warning: Could not load {char['name']}: {e}")
+            character_images.append(None)
+    
+    try:
+        select_player_img = pygame.image.load("media/graphics/items/select-player.png")
+        select_player_img = pygame.transform.scale(select_player_img, (300, 60))
+    except:
+        print("Warning: Could not load select-player.png")
+        select_player_img = None
 
+    # Load arrow images
+    try:
+        left_arrow = pygame.image.load("media/graphics/items/left arrow .png")
+        left_arrow_dark = pygame.image.load("media/graphics/items/left-arrow-dark.png")
+        right_arrow = pygame.image.load("media/graphics/items/right-arrow.png")
+        right_arrow_dark = pygame.image.load("media/graphics/items/right-arrow-dark.png")
+        
+        # Scale light arrows
+        arrow_size = (40, 40)
+        left_arrow = pygame.transform.scale(left_arrow, arrow_size)
+        right_arrow = pygame.transform.scale(right_arrow, arrow_size)
+        
+        # Scale dark arrows 
+        dark_arrow_size = (40, 40) 
+        left_arrow_dark = pygame.transform.scale(left_arrow_dark, dark_arrow_size)
+        right_arrow_dark = pygame.transform.scale(right_arrow_dark, dark_arrow_size)
+    except Exception as e:
+        print(f"Warning: Could not load arrow images: {e}")
+        left_arrow = None
+    
+    
     hover_scale = {
         "play": 1.0,
         "high": 1.0,
@@ -75,53 +158,106 @@ def main_menu():
 
     running = True
     while running:
-
+        
         # Background
         if menu_background:
             screen.blit(pygame.transform.scale(menu_background, (SCREEN_WIDTH, SCREEN_HEIGHT)), (0, 0))
         else:
             common.draw_gradient_background(screen, (20, 20, 60), (0, 0, 0))
 
-        # UI Header
-        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 150))
+            # Draw BREAKOUT title image
+        if title_image:
+            title_x = 150
+            title_y = 130
+            screen.blit(title_image, (title_x, title_y))
+        else:
+            # Fallback if image doesn't load
+            screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 150))
 
         mouse_pos = pygame.mouse.get_pos()
         hover_any = False
 
+    # Draw buttons with images
         button_data = [
-            ("play", play_button, play_rect),
-            ("high", high_button, high_rect),
-            ("settings", settings_button, settings_rect),
-            ("credits", credits_button, credits_rect),
-            ("quit", quit_button, quit_rect),
+            ("play", play_button_img, play_rect),
+            ("high", highscores_button_img, high_rect),
+            ("settings", settings_button_img, settings_rect),
+            ("credits", credits_button_img, credits_rect),
+            ("quit", quit_button_img, quit_rect),
         ]
 
-        for name, base_surf, base_rect in button_data:
-            hovered = base_rect.collidepoint(mouse_pos)
-            hover_any = hover_any or hovered
+        for name, button_img, button_rect in button_data:
+            if button_img:
+                hovered = button_rect.collidepoint(mouse_pos)
+                hover_any = hover_any or hovered
+                
+                # Smooth scale animation on hover
+                target = 1.1 if hovered else 1.0
+                hover_scale[name] += (target - hover_scale[name]) * 0.15
+                
+                scale = hover_scale[name]
+                if scale != 1.0:
+                    # Scale the button
+                    scaled_w = int(button_img.get_width() * scale)
+                    scaled_h = int(button_img.get_height() * scale)
+                    scaled_img = pygame.transform.smoothscale(button_img, (scaled_w, scaled_h))
+                    scaled_rect = scaled_img.get_rect(center=button_rect.center)
+                    screen.blit(scaled_img, scaled_rect)
+                else:
+                    # Draw normal size
+                    screen.blit(button_img, button_rect)    
 
-            # Smooth animation
-            target = 1.25 if hovered else 1.0
-            hover_scale[name] += (target - hover_scale[name]) * 0.15
+        # Draw "Select Player" section (right side)
+        select_x = SCREEN_WIDTH - 450
+        select_y = 350
+        
+        # Draw "Select Player" image/title (smaller)
+        if select_player_img:
+            smaller_select = pygame.transform.scale(select_player_img, (250, 50))
+            screen.blit(smaller_select, (select_x, select_y))
+            title_width = 250  # Width of the select player image
+        
+        # Draw character NAME centered under "Select Player" title
+        try:
+            name_font = pygame.font.Font("media/graphics/font/Pixeboy.ttf", 36)
+        except:
+            name_font = pygame.font.Font(None, 36)
+        character_name = name_font.render(characters[selected_character]["name"], True, (100, 200, 255))
+        name_x = select_x + (title_width // 2) - (character_name.get_width() // 2)  # Center it
+        screen.blit(character_name, (name_x, select_y + 70))
+        
+        # Draw character image SMALLER and centered under the name
+        if character_images[selected_character]:
+            # Make character smaller
+            small_char = pygame.transform.scale(character_images[selected_character], (60, 60))  # Smaller!
+            char_img_x = select_x + (title_width // 2) - 30  # Center it (half of 60)
+            char_img_y = select_y + 130
+            screen.blit(small_char, (char_img_x, char_img_y))
 
-            scale = hover_scale[name]
-            scaled_w = int(base_surf.get_width() * scale)
-            scaled_h = int(base_surf.get_height() * scale)
-            scaled_surf = pygame.transform.smoothscale(base_surf, (scaled_w, scaled_h))
-            scaled_rect = scaled_surf.get_rect(center=base_rect.center)
-
-            # Glow effect behind button when hovered
-            if hovered:
-                glow_size = 10
-                glow_surf = pygame.transform.smoothscale(
-                    base_surf, (scaled_w + glow_size, scaled_h + glow_size)
-                )
-                glow_surf.set_alpha(120)
-                glow_rect = glow_surf.get_rect(center=base_rect.center)
-                screen.blit(glow_surf, glow_rect)
-
-            screen.blit(scaled_surf, scaled_rect)
-
+        # Draw arrows (already scaled at load time)
+        arrow_y = select_y + 135
+        
+        # Left arrow position
+        left_arrow_x = select_x - 40
+        
+        # Right arrow position
+        right_arrow_x = select_x + 250
+        
+        # Left arrow (dark if on first character)
+        if selected_character == 0:
+            if left_arrow_dark:
+                screen.blit(left_arrow_dark, (left_arrow_x, arrow_y))
+        else:
+            if left_arrow:
+                screen.blit(left_arrow, (left_arrow_x, arrow_y))
+        
+        # Right arrow (dark if on last character)
+        if selected_character == len(characters) - 1:
+            if right_arrow_dark:
+                screen.blit(right_arrow_dark, (right_arrow_x, arrow_y))
+        else:
+            if right_arrow:
+                screen.blit(right_arrow, (right_arrow_x, arrow_y))
         # Cursor change on hover
         pygame.mouse.set_cursor(
             pygame.SYSTEM_CURSOR_HAND if hover_any else pygame.SYSTEM_CURSOR_ARROW
@@ -136,7 +272,9 @@ def main_menu():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if play_rect.collidepoint(event.pos):
                     if menu_click_sound: menu_click_sound.play()
-                    play_breakout(screen)
+                    # Pass the selected character image to the game
+                    selected_char_image = characters[selected_character]["image"]
+                    play_breakout(screen, selected_char_image)
 
                 elif high_rect.collidepoint(event.pos):
                     if menu_click_sound: menu_click_sound.play()
@@ -155,12 +293,36 @@ def main_menu():
                     pygame.quit()
                     sys.exit()
 
+                # Arrow click handling
+                # Left arrow - go to previous character
+                elif selected_character > 0:  
+                    left_arrow_rect = pygame.Rect(select_x - 40, select_y + 120, 40, 40)
+                    if left_arrow_rect.collidepoint(event.pos):
+                        if menu_click_sound: menu_click_sound.play()
+                        selected_character -= 1
+                        #Save to config 
+                        config["last_character"] = selected_character
+                        with open("config.json", "w") as f:
+                            json.dump(config, f, indent=2)
+                
+                # Right arrow - go to next character
+                if selected_character < len(characters) - 1:  
+                    right_arrow_rect = pygame.Rect(select_x + 250, select_y + 120, 40, 40)
+                    if right_arrow_rect.collidepoint(event.pos):
+                        if menu_click_sound: menu_click_sound.play()
+                        selected_character += 1
+                        #Save to config 
+                        config["last_character"] = selected_character
+                        with open("config.json", "w") as f:
+                            json.dump(config, f, indent=2)
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LCTRL:
                     open_test_menu(screen)
                 elif event.key == pygame.K_SPACE:
                     if menu_click_sound: menu_click_sound.play()
-                    play_breakout(screen)
+                    selected_char_image = characters[selected_character]["image"]
+                    play_breakout(screen, selected_char_image)
                 elif event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
@@ -274,6 +436,7 @@ def open_settings_menu(screen):
                     return
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if menu_click_sound: menu_click_sound.play()
                 return
 
         pygame.display.flip()
@@ -314,6 +477,7 @@ def show_how_to_play(screen):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if menu_click_sound: menu_click_sound.play()
                 return
 
         pygame.display.flip()
@@ -381,6 +545,7 @@ def show_credits(screen):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                if menu_click_sound: menu_click_sound.play()
                 return
 
         pygame.display.flip()
@@ -422,13 +587,13 @@ def open_test_menu(screen):
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 key = event.key
-                if key == pygame.K_1: return play_breakout(screen, "one_block")
-                if key == pygame.K_2: return play_breakout(screen, "countdown")
-                if key == pygame.K_3: return play_breakout(screen, "level_1")
-                if key == pygame.K_4: return play_breakout(screen, "level_2")
-                if key == pygame.K_5: return play_breakout(screen, "level_3")
-                if key == pygame.K_6: return play_breakout(screen, "level_4")
-                if key == pygame.K_7: return play_breakout(screen, "level_5")
+                if key == pygame.K_1: return play_breakout(screen, characters[0]["image"], debug_mode="one_block")
+                if key == pygame.K_2: return play_breakout(screen, characters[0]["image"], debug_mode="countdown")
+                if key == pygame.K_3: return play_breakout(screen, characters[0]["image"], debug_mode="level_1")
+                if key == pygame.K_4: return play_breakout(screen, characters[0]["image"], debug_mode="level_2")
+                if key == pygame.K_5: return play_breakout(screen, characters[0]["image"], debug_mode="level_3")
+                if key == pygame.K_6: return play_breakout(screen, characters[0]["image"], debug_mode="level_4")
+                if key == pygame.K_7: return play_breakout(screen, characters[0]["image"], debug_mode="level_5")
                 if key == pygame.K_ESCAPE: return
 
         pygame.display.flip()
@@ -436,15 +601,14 @@ def open_test_menu(screen):
 
 
 # ---------- GAME LAUNCHER ----------
-def play_breakout(screen, debug_mode=False):
+def play_breakout(screen, character_image=None, debug_mode=False):
     replay = True
     while replay:
-        replay = breakout.play(screen, debug_mode)
+        replay = breakout.play(screen, debug_mode, character_image)
         pygame.mouse.set_visible(True)
     main_menu()
 
 
 # ---------- ENTRY ----------
 if __name__ == '__main__':
-    pygame.init()
     main_menu()

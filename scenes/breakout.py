@@ -78,6 +78,7 @@ paddle_big_timer = 0
 paddle_big_duration = 300
 
 balls = []
+ball_image = None
 
 # --- Debug + Tutorial ---
 debug_countdown_mode = False
@@ -104,7 +105,7 @@ tutorial_phase = "move"
 
 # --- Assets + Timers ---
 pixel_font_path = os.path.join(ROOT_PATH, 'media', 'graphics', 'font', 'Pixeboy.ttf')
-font = pygame.font.Font(pixel_font_path, 36)
+font = None
 
 clock = pygame.time.Clock()
 delta_time = 0
@@ -144,9 +145,12 @@ DROP_TABLE = {
 # ================= Game Setup =================
 
 # --- Init ---
-def init():
+def init(character_image=None):
     global bar_x, bar_y, speed, ball_radius, ball_position, \
-        ball_velocity, ball_max_velocity_x, clock, delta_time, pause_requested, win, balls
+        ball_velocity, ball_max_velocity_x, clock, delta_time, pause_requested, win, balls, font
+
+    # Initialize font (must be after pygame.init())
+    font = pygame.font.Font(pixel_font_path, 36)
 
     # Reset ball list every new game
     balls = []
@@ -156,6 +160,21 @@ def init():
     speed = 8
 
     ball_radius = 10
+
+    
+    # Load selected character image
+    global ball_image
+    if character_image:
+        try:
+            full_path = os.path.join(ROOT_PATH, character_image)
+            ball_image = pygame.image.load(full_path)
+            ball_image = pygame.transform.scale(ball_image, (ball_radius * 2, ball_radius * 2))
+        except Exception as e:
+            print(f"Error loading ball image at {character_image}: {e}")
+            ball_image = None
+    else:
+        ball_image = None
+
     ball_position = pygame.Vector2(SCREEN_WIDTH // 2, bar_y - ball_radius - 4)
     ball_velocity = pygame.Vector2(0, 0)
     ball_max_velocity_x = 6
@@ -199,15 +218,15 @@ def load_assets():
 # ================= Game Flow =================
 
 # --- Public Entry Point ---
-def play(screen, debug_mode=""):
-    return main_controller(screen, debug_mode)
+def play(screen, debug_mode="", character_image=None):
+    return main_controller(screen, debug_mode, character_image)
 
 
 # --- Main Controller ---
-def main_controller(screen, debug_mode=""):
+def main_controller(screen, debug_mode="", character_image=None):
     global game_timer, level_timer
 
-    init()
+    init(character_image)
     pygame.mouse.set_visible(False)
 
     # ---- Reset tutorial state each time a new game starts ----
@@ -381,14 +400,18 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
     global ball_position, pause_requested, delta_time, blast_active, blast_timer
     global paddle_shrink_active, paddle_shrink_timer
     global paddle_big_active, paddle_big_timer
-    global level_timer
+    global level_timer, ball_image
 
     walls = draw_wall(screen)
     bar = draw_bar(screen)
     draw_level(screen, level)
 
     for b in balls:
-        pygame.draw.circle(screen, WHITE, (int(b["pos"].x), int(b["pos"].y)), ball_radius)
+        # Draw character image if loaded, otherwise draw white circle
+        if ball_image:
+            screen.blit(ball_image, (int(b["pos"].x) - ball_radius, int(b["pos"].y) - ball_radius))
+        else:
+            pygame.draw.circle(screen, WHITE, (int(b["pos"].x), int(b["pos"].y)), ball_radius)
 
     scoreboard.draw()
 
@@ -1194,7 +1217,5 @@ def pause_game(screen):
     if choice == "menu":
         pygame.mouse.set_visible(True)
         return False
-
-    pygame.event.clear()
-    pause_requested = False
-    return True
+    elif choice == "resume":
+         return True 
