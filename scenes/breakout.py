@@ -69,13 +69,9 @@ blast_active = False
 blast_timer = 0
 blast_duration = 300
 
-paddle_shrink_active = False
-paddle_shrink_timer = 0
-paddle_shrink_duration = 300
-
-paddle_big_active = False
-paddle_big_timer = 0
-paddle_big_duration = 300
+paddle_state = "normal"
+paddle_state_timer = 0
+paddle_power_duration = 300
 
 balls = []
 last_hit_ball = None
@@ -87,18 +83,17 @@ debug_countdown_mode = False
 config_path = "config.json"
 
 if os.path.exists(config_path):
-    with open(config_path, "r") as f:
-        cfg = json.load(f)
-        cfg.setdefault("sound_volume", 5)
-        cfg.setdefault("music_volume", 5)
-
-    # ensure key exists
-    cfg.setdefault("tutorial_enabled", True)
-
+    try:
+        with open(config_path, "r") as f:
+            cfg = json.load(f)
+    except:
+        cfg = {}
 else:
-    cfg = {"tutorial_enabled": True}
-    with open(config_path, "w") as f:
-        json.dump(cfg, f, indent=2)
+    cfg = {}
+
+cfg.setdefault("sound_volume", 5)
+cfg.setdefault("music_volume", 5)
+cfg.setdefault("tutorial_enabled", True)
 
 # Tutorial state
 tutorial_active = cfg["tutorial_enabled"]
@@ -128,7 +123,7 @@ blast_shoot_sound = None
 pause_sound = None
 unpause_sound = None
 
-paddle_image = None
+paddle_image: pygame.Surface | None = None
 background = None
 
 bar_x = 0
@@ -150,12 +145,12 @@ def current_volume():
 
 # --- Drop Rates ---
 DROP_TABLE = {
-    "coin": 0.30,
-    "triple_ball": 0.15,
-    "blast": 0.10,
-    "small_paddle": 0.05,
-    "big_paddle": 0.10,
-    "nothing": 0.30
+    "coin": 0.01,
+    "triple_ball": 0.01,
+    "blast": 0.01,
+    "small_paddle": 0.48,
+    "big_paddle": 0.48,
+    "nothing": 0.01
 }
 
 
@@ -188,11 +183,12 @@ def init():
 # ---------- Volume Helper ----------
 def apply_sound_volumes():
     global cfg
+
     try:
         with open(config_path, "r") as f:
             cfg = json.load(f)
     except:
-        pass
+        cfg = {"sound_volume": 5}
     try:
         level = int(cfg.get("sound_volume", 5))
     except:
@@ -202,21 +198,21 @@ def apply_sound_volumes():
     vol = level / 5.0
 
     try:
-        if wall_sound:
+        if isinstance(wall_sound, Sound):
             wall_sound.set_volume(vol)
-        if paddle_sound:
+        if isinstance(paddle_sound, Sound):
             paddle_sound.set_volume(vol)
-        if brick_sound:
+        if isinstance(brick_sound, Sound):
             brick_sound.set_volume(vol)
-        if lose_life_sound:
+        if isinstance(lose_life_sound, Sound):
             lose_life_sound.set_volume(vol)
-        if coin_sound:
+        if isinstance(coin_sound, Sound):
             coin_sound.set_volume(vol)
-        if blast_shoot_sound:
+        if isinstance(blast_shoot_sound, Sound):
             blast_shoot_sound.set_volume(vol)
-        if pause_sound:
+        if isinstance(pause_sound, Sound):
             pause_sound.set_volume(vol)
-        if unpause_sound:
+        if isinstance(unpause_sound, Sound):
             unpause_sound.set_volume(vol)
     except:
         pass
@@ -277,11 +273,12 @@ def load_assets():
     try:
         paddle_image = pygame.image.load(
             os.path.join(ROOT_PATH, 'media', 'graphics', 'paddle', 'paddle.png')
-        )
+        ).convert_alpha()
         paddle_image = pygame.transform.scale(paddle_image, (BAR_WIDTH, BAR_HEIGHT))
     except FileNotFoundError:
         print("Warning: Could not load paddle image")
-        paddle_image = None
+        paddle_image = pygame.Surface((BAR_WIDTH, BAR_HEIGHT))
+        paddle_image.fill((255, 255, 255))
 
     # Load background
     try:
@@ -304,6 +301,7 @@ def play(screen, debug_mode=""):
 # --- Main Controller ---
 def main_controller(screen, debug_mode=""):
     global tutorial_active, tutorial_timer, tutorial_phase, cfg, game_timer, level_timer
+    global paddle_state, paddle_state_timer
 
     init()
 
@@ -396,15 +394,15 @@ def main_controller(screen, debug_mode=""):
     tutorial_phase = "move"
 
     # Reset power-ups at start of game
-    global blast_active, blast_timer, paddle_shrink_active, paddle_shrink_timer
+    global blast_active, blast_timer, paddle_state, paddle_state_timer
     blast_active = False
     blast_timer = 0
-    paddle_shrink_active = False
-    paddle_shrink_timer = 0
+    paddle_state = "normal"
+    paddle_state_timer = 0
 
     running = True
     while running:
-        status = game_loop(screen, scoreboard, game_timer, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration, show_fps, cfg)
+        status = game_loop(screen, scoreboard, game_timer, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration, cfg)
 
 
         if status == "running":
@@ -447,10 +445,9 @@ def main_controller(screen, debug_mode=""):
                     # Reset active power-up states
                     blast_active = False
                     blast_timer = 0
-                    paddle_shrink_active = False
-                    paddle_shrink_timer = 0
+                    paddle_state = "normal"
+                    paddle_state_timer = 0
 
-                    # Force paddle full size and recenter after level transition
                     draw_bar.width = original_paddle_width
                     draw_bar.stored_width = original_paddle_width
                     bar_x = (SCREEN_WIDTH - original_paddle_width) // 2
@@ -480,11 +477,10 @@ def main_controller(screen, debug_mode=""):
 
 # ================= Core Game Loop =================
 
-def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration, show_fps, cfg):
+def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration, cfg):
     global ball_position, pause_requested, delta_time, blast_active, blast_timer
-    global paddle_shrink_active, paddle_shrink_timer
-    global paddle_big_active, paddle_big_timer
     global level_timer
+    global paddle_state, paddle_state_timer
 
     show_fps = (debug_mode is not False) or cfg.get("show_fps", False)
 
@@ -550,7 +546,7 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
         if coin.rect.bottom >= bar.top and coin.rect.colliderect(bar):
             scoreboard.add_points(50)
             coins.remove(coin)
-            if coin_sound:
+            if isinstance(coin_sound, Sound):
                 coin_sound.play()
 
     # Update and draw powerups
@@ -569,16 +565,17 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
                 blast_active = True
                 blast_timer = blast_duration
             elif powerup.type == "small_paddle":
-                paddle_shrink_active = True
-                paddle_shrink_timer = paddle_shrink_duration
+                paddle_state = "small"
+                paddle_state_timer = paddle_power_duration
             elif powerup.type == "triple_ball":
                 spawn_triple_ball()
             elif powerup.type == "big_paddle":
-                paddle_big_active = True
-                paddle_big_timer = paddle_big_duration
+                paddle_state = "big"
+                paddle_state_timer = paddle_power_duration
                 pass
             if coin_sound:
                 coin_sound.play()
+
     # Auto-shoot blasts when active
     if blast_active and blast_timer > 0:
         blast_timer -= 1
@@ -589,24 +586,17 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
                 blasts.append(BlueBlast(bar.left + 2, bar.top - 20))  # Left
             else:
                 blasts.append(BlueBlast(bar.right - 22, bar.top - 20))  # Right
-            if blast_shoot_sound:
+            if isinstance(blast_shoot_sound, Sound):
                 blast_shoot_sound.play()
 
         # Deactivate when timer runs out
         if blast_timer <= 0:
             blast_active = False
 
-    # Handle paddle shrinking
-    if paddle_shrink_active and paddle_shrink_timer > 0:
-        paddle_shrink_timer -= 1
-    if paddle_shrink_active and paddle_shrink_timer <= 0:
-        paddle_shrink_active = False
-
-    # Handle big paddle
-    if paddle_big_active and paddle_big_timer > 0:
-        paddle_big_timer -= 1
-    if paddle_big_active and paddle_big_timer <= 0:
-        paddle_big_active = False
+    if paddle_state != "normal":
+        paddle_state_timer -= 1
+        if paddle_state_timer <= 0:
+            paddle_state = "normal"
 
     # Update and draw blasts
     for blast in blasts[:]:
@@ -779,27 +769,19 @@ def define_blocks(screen, level, wall_padding=WALL_PADDING):
 
 
 def reset_ball_and_paddle():
-    global balls, bar_x
-    global paddle_shrink_active, paddle_shrink_timer
-    global paddle_big_active, paddle_big_timer
+    global balls, bar_x, paddle_state, paddle_state_timer
     global blast_active, blast_timer
 
-    # Reset paddle powerups
-    paddle_shrink_active = False
-    paddle_shrink_timer = 0
-    paddle_big_active = False
-    paddle_big_timer = 0
+    paddle_state = "normal"
+    paddle_state_timer = 0
     blast_active = False
     blast_timer = 0
 
-    # Reset paddle width animation
     draw_bar.width = original_paddle_width
     draw_bar.stored_width = original_paddle_width
 
-    # Reset paddle to center
     bar_x = (SCREEN_WIDTH - original_paddle_width) // 2
 
-    # ---- Reset BALLS the correct way ----
     balls = [
         {
             "pos": pygame.Vector2(SCREEN_WIDTH // 2, bar_y - ball_radius - 4),
@@ -822,7 +804,7 @@ def handle_input(bar, main_ball):
 
             # Pause
             if event.key == pygame.K_ESCAPE:
-                if pause_sound:
+                if isinstance(pause_sound, Sound):
                     pause_sound.set_volume(current_volume())
                     pause_sound.play()
                 pause_requested = True
@@ -1040,9 +1022,8 @@ def wall_check_multi(ball, walls):
         ball["pos"].y = walls.top + ball_radius
         hit_wall = True
 
-    if hit_wall and wall_sound:
+    if hit_wall and isinstance(wall_sound, Sound):
         wall_sound.play()
-
 
 # ---------- Paddle Collision ----------
 def paddle_check_multi(ball, bar):
@@ -1202,11 +1183,11 @@ def draw_wall(screen):
 
 # ---------- Draw Paddle ----------
 def draw_bar(screen):
-    global bar_x, paddle_shrink_active
+    global bar_x, paddle_state
 
-    if paddle_shrink_active:
+    if paddle_state == "small":
         target_width = small_paddle_width
-    elif paddle_big_active:
+    elif paddle_state == "big":
         target_width = big_paddle_width
     else:
         target_width = original_paddle_width
@@ -1225,10 +1206,15 @@ def draw_bar(screen):
     image_y_offset = -11
 
     # --- Paddle Image Selection ---
-    if paddle_shrink_active:
+    state = paddle_state
+
+    if paddle_state in ("small", "big") and paddle_image:
         tinted = paddle_image.copy()
         tinted.fill((0, 0, 0), special_flags=pygame.BLEND_RGB_MULT)
-        tinted.fill((255, 40, 40), special_flags=pygame.BLEND_RGB_ADD)
+        if paddle_state == "small":
+            tinted.fill((255, 40, 40), special_flags=pygame.BLEND_RGB_ADD)
+        else:
+            tinted.fill((40, 140, 255), special_flags=pygame.BLEND_RGB_ADD)
         current_img = tinted
     else:
         current_img = paddle_image
@@ -1346,8 +1332,7 @@ def show_boss_intro(screen):
 def update_scoreboard(screen, scoreboard, timer, blasts, coins, powerups):
     global ball_position, ball_velocity, bar_x
     global blast_active, blast_timer
-    global paddle_shrink_active, paddle_shrink_timer
-    global paddle_big_active, paddle_big_timer
+    global paddle_state, paddle_state_timer
 
     scoreboard.lose_life()
     if isinstance(lose_life_sound, Sound):
@@ -1364,10 +1349,8 @@ def update_scoreboard(screen, scoreboard, timer, blasts, coins, powerups):
         # Reset power-ups when losing a life
         blast_active = False
         blast_timer = 0
-        paddle_shrink_active = False
-        paddle_shrink_timer = 0
-        paddle_big_active = False
-        paddle_big_timer = 0
+        paddle_state = "normal"
+        paddle_state_timer = 0
 
         # Clear all falling items
         blasts.clear()
@@ -1409,7 +1392,7 @@ def pause_game(screen):
         return False
 
     if choice == "resume":
-        if unpause_sound:
+        if isinstance(unpause_sound, Sound):
             unpause_sound.set_volume(current_volume())
             unpause_sound.play()
 
