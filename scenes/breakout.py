@@ -145,12 +145,12 @@ def current_volume():
 
 # --- Drop Rates ---
 DROP_TABLE = {
-    "coin": 0.01,
-    "triple_ball": 0.01,
-    "blast": 0.01,
-    "small_paddle": 0.48,
-    "big_paddle": 0.48,
-    "nothing": 0.01
+    "coin": 0.30,
+    "triple_ball": 0.15,
+    "blast": 0.10,
+    "small_paddle": 0.05,
+    "big_paddle": 0.10,
+    "nothing": 0.30
 }
 
 
