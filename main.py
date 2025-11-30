@@ -73,6 +73,13 @@ except:
 def main_menu():
     pygame.mouse.set_visible(True)
 
+    # Menu Music Start
+    from common import menu_music, gameplay_music, boss_music, apply_music_volume
+    gameplay_music.stop()
+    boss_music.stop()
+    menu_music.play(loops=-1)
+    apply_music_volume(config.get("music_volume", 5))
+
     # Set up the screen
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Breakout Game - Menu")
@@ -416,12 +423,14 @@ def open_settings_menu(screen):
                     if volume_minus_rects["music_volume"].collidepoint(pos):
                         config["music_volume"] = max(0, config.get("music_volume", 5) - 1)
                         save_config()
-                        pygame.mixer.music.set_volume(config["music_volume"] / 5.0)
+                        from common import apply_music_volume
+                        apply_music_volume(config["music_volume"])
 
                     if volume_plus_rects["music_volume"].collidepoint(pos):
                         config["music_volume"] = min(5, config.get("music_volume", 5) + 1)
                         save_config()
-                        pygame.mixer.music.set_volume(config["music_volume"] / 5.0)
+                        from common import apply_music_volume
+                        apply_music_volume(config["music_volume"])
 
                 for (checkbox, key) in checkbox_rects:
                     if checkbox and checkbox.collidepoint(pos):
@@ -609,7 +618,12 @@ def open_test_menu(screen):
 
 # ---------- GAME LAUNCHER ----------
 def play_breakout(screen, debug_mode=False):
-    pygame.mixer.music.set_volume(config.get("music_volume", 5) / 5.0)
+    from common import menu_music, gameplay_music, boss_music, apply_music_volume
+
+    menu_music.stop()
+    boss_music.stop()
+    gameplay_music.play(loops=-1)
+    apply_music_volume(config.get("music_volume", 5))
 
     replay = True
     while replay:

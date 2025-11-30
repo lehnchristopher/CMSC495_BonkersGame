@@ -257,12 +257,12 @@ def load_assets():
         blast_shoot_sound.set_volume(vol)
 
         pause_sound = pygame.mixer.Sound(
-            os.path.join(ROOT_PATH, "media", "audio", "pause.mp3")
+            os.path.join(ROOT_PATH, "media", "audio", "pause.wav")
         )
         pause_sound.set_volume(vol)
 
         unpause_sound = pygame.mixer.Sound(
-            os.path.join(ROOT_PATH, "media", "audio", "unpause.mp3")
+            os.path.join(ROOT_PATH, "media", "audio", "unpause.wav")
         )
         unpause_sound.set_volume(vol)
 
@@ -414,7 +414,15 @@ def main_controller(screen, debug_mode=""):
         elif status == "game_over":
             running = False
 
+
         elif status == "level_complete":
+
+            # Stop Boss Music
+            from common import boss_music, gameplay_music, apply_music_volume
+            boss_music.stop()
+            gameplay_music.stop()
+            apply_music_volume(cfg.get("music_volume", 5))
+
             # For one_block debug, treat level clear as a simple win and exit
             if debug_mode == "one_block":
                 if isinstance(game_timer, Timer):
@@ -466,6 +474,13 @@ def main_controller(screen, debug_mode=""):
                     # Show boss intro only when entering level 5
                     if level == 5:
                         show_boss_intro(screen)
+
+                        #Boss Music Start
+                        from common import menu_music, gameplay_music, boss_music, apply_music_volume
+                        gameplay_music.stop()
+                        menu_music.stop()
+                        boss_music.play(loops=-1)
+                        apply_music_volume(cfg.get("music_volume", 5))
 
     replay = False
     if win is not None:

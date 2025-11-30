@@ -17,6 +17,23 @@ WHITE = (255, 255, 255)
 COLORS = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, CYAN]
 ROOT_PATH = os.path.dirname(__file__)
 
+ROOT_PATH = os.path.dirname(__file__)
+
+# --- Music Files ---
+import pygame
+pygame.mixer.init()
+
+menu_music = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "Music", "Space-main.wav"))
+gameplay_music = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "Music", "Game-main.wav"))
+boss_music = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "Music", "boss-fight-one.wav"))
+
+def apply_music_volume(volume_level):
+    vol = max(0, min(volume_level, 5)) / 5
+    menu_music.set_volume(vol)
+    gameplay_music.set_volume(vol)
+    boss_music.set_volume(vol)
+
+
 def draw_gradient_background(screen, top_color, bottom_color):
     """Draw a simple vertical gradient for the menu background"""
     height = screen.get_height()
