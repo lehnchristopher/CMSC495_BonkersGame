@@ -1,5 +1,6 @@
 import pygame
 import os
+import json
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 1200, 900
 
@@ -15,8 +16,6 @@ CYAN = (0, 255, 255)
 WHITE = (255, 255, 255)
 
 COLORS = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, CYAN]
-ROOT_PATH = os.path.dirname(__file__)
-
 ROOT_PATH = os.path.dirname(__file__)
 
 # --- Music Files ---

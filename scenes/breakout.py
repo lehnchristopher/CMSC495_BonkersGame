@@ -435,10 +435,9 @@ def main_controller(screen, debug_mode="", character_image=None):
         elif status == "level_complete":
 
             # Stop Boss Music
-            from common import boss_music, gameplay_music, apply_music_volume
-            boss_music.stop()
-            gameplay_music.stop()
-            apply_music_volume(cfg.get("music_volume", 5))
+            from common import boss_music, gameplay_music
+            if level == 5:
+                boss_music.stop()
 
             # For one_block debug, treat level clear as a simple win and exit
             if debug_mode == "one_block":
