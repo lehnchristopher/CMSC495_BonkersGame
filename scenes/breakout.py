@@ -1354,7 +1354,7 @@ def show_level_complete(screen, level):
     message_rect = message.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     screen.blit(message, message_rect)
     pygame.display.flip()
-    pygame.time.wait(1000)
+    pygame.time.wait(1500)
 
 
 def show_boss_intro(screen):
