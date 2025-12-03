@@ -14,38 +14,39 @@ import common
 import os
 import json
 
-from common import RED, WHITE, GREEN, BLUE, SCREEN_WIDTH, SCREEN_HEIGHT, ROOT_PATH
+from common import RED, WHITE, SCREEN_WIDTH, SCREEN_HEIGHT, ROOT_PATH
 from scenes import breakout, highscores
 from scenes.loading import show_loading_screen
 
-# Initialize pygame FIRST
 pygame.init()
 pygame.mixer.init()
 
+config_path = "config.json"
+default_config_path = "config.default.json"
+
 try:
-    menu_click_sound = pygame.mixer.Sound(os.path.join(ROOT_PATH, "media", "audio", "media_audio_selection_click.wav"))
+    menu_click_sound = pygame.mixer.Sound(
+        os.path.join(ROOT_PATH, "media", "audio", "media_audio_selection_click.wav")
+    )
 except:
     print("Warning: Could not load menu click sound.")
     menu_click_sound = None
 
 try:
     menu_background = pygame.image.load(
-        os.path.join(ROOT_PATH, "media", "graphics", "background", "back-landscape-grid.png"))
+        os.path.join(ROOT_PATH, "media", "graphics", "background", "back-landscape-grid.png")
+    )
 except:
     print("Warning: Could not load background image.")
     menu_background = None
 
-# ---- Load or create config ----
-config_path = "config.json"
-
-
+# FUNCTIONS SECOND
 def save_config():
     try:
         with open(config_path, "w") as f:
             json.dump(config, f, indent=2)
     except:
         print("Warning: Could not save config.json")
-
 
 def current_sfx_volume():
     try:
@@ -61,30 +62,33 @@ def current_sfx_volume():
     except:
         return 1.0
 
-
-if os.path.exists(config_path):
-    with open(config_path, "r") as f:
-        config = json.load(f)
-
-    # ensure key exists
-    config.setdefault("tutorial_enabled", True)
-    config.setdefault("sound_volume", 5)
-    config.setdefault("music_volume", 5)
-    config.setdefault("show_fps", False)
-    config.setdefault("mouse_enabled", False)
-
-else:
-    config = {
-        "tutorial_enabled": True
+# NOW LOAD DEFAULTS / CONFIG
+try:
+    with open(default_config_path, "r") as f:
+        default_config = json.load(f)
+except:
+    default_config = {
+        "tutorial_enabled": True,
+        "show_fps": False,
+        "mouse_enabled": False,
+        "last_character": 0,
+        "sound_volume": 3,
+        "music_volume": 3
     }
 
-    # --- Settings defaults ---
-    config.setdefault("sound_volume", 5)
-    config.setdefault("music_volume", 5)
-    config.setdefault("show_fps", False)
-    config.setdefault("mouse_enabled", False)
+if os.path.exists(config_path):
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        # Fill missing keys
+        for key, value in default_config.items():
+            config.setdefault(key, value)
+    except:
+        config = default_config.copy()
+else:
+    config = default_config.copy()
 
-    save_config()
+save_config()
 
 # Character selection setup (Global)
 characters = [
@@ -441,15 +445,15 @@ def open_settings_menu(screen):
 
     # Settings list
     options = [
-        ("Tutorial", "tutorial_enabled", False, ""),
-        ("Show FPS", "show_fps", True, ""),
-        ("Mouse Control", "mouse_enabled", True, ""),
-        ("Sound Volume", "sound_volume", True, ""),
-        ("Music Volume", "music_volume", True, ""),
+        ("Tutorial", "tutorial_enabled"),
+        ("Show FPS", "show_fps"),
+        ("Mouse Control", "mouse_enabled"),
+        ("Sound Volume", "sound_volume"),
+        ("Music Volume", "music_volume"),
     ]
 
     # Ensure all options exist in config
-    for label, key, _, _ in options:
+    for label, key in options:
         if "volume" in key:
             config.setdefault(key, 5)
         else:
@@ -475,7 +479,7 @@ def open_settings_menu(screen):
 
     value_box_width = 60
 
-    for i, (label, key, unfinished, note) in enumerate(options):
+    for i, (label, key) in enumerate(options):
         y = start_y + i * spacing
 
         # Sound Volume row
@@ -518,7 +522,7 @@ def open_settings_menu(screen):
         screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 150))
 
         # -------- DRAW SETTINGS --------
-        for i, (label, key, unfinished, note) in enumerate(options):
+        for i, (label, key) in enumerate(options):
             y = start_y + i * spacing
 
             # Setting name
@@ -586,10 +590,6 @@ def open_settings_menu(screen):
             else:
                 screen.blit(slider_off, checkbox)
 
-            if unfinished:
-                note_text = small.render(note, True, (180, 180, 180))
-                screen.blit(note_text, (col_note_x, y))
-
         # Bottom buttons
         screen.blit(how_text, how_rect)
         screen.blit(back_text, back_rect)
@@ -638,7 +638,7 @@ def open_settings_menu(screen):
                         from common import apply_music_volume
                         apply_music_volume(config["music_volume"])
 
-                for (checkbox, key) in checkbox_rects:
+                for checkbox, key in checkbox_rects:
                     if checkbox and checkbox.collidepoint(pos):
                         config[key] = not config[key]
                         save_config()
