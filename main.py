@@ -408,15 +408,44 @@ def open_settings_menu(screen):
         (255, 120, 60)
     ]
 
+    # ----- Load Arrow Images -----
+    try:
+        left_arrow = pygame.image.load(os.path.join(ROOT_PATH, "media/graphics/items/left arrow.png"))
+        left_arrow_dark = pygame.image.load(os.path.join(ROOT_PATH, "media/graphics/items/left-arrow-dark.png"))
+        right_arrow = pygame.image.load(os.path.join(ROOT_PATH, "media/graphics/items/right-arrow.png"))
+        right_arrow_dark = pygame.image.load(os.path.join(ROOT_PATH, "media/graphics/items/right-arrow-dark.png"))
+
+        left_arrow = pygame.transform.scale(left_arrow, (40, 40))
+        right_arrow = pygame.transform.scale(right_arrow, (40, 40))
+        left_arrow_dark = pygame.transform.scale(left_arrow_dark, (40, 40))
+        right_arrow_dark = pygame.transform.scale(right_arrow_dark, (40, 40))
+    except:
+        left_arrow = None
+        left_arrow_dark = None
+        right_arrow = None
+        right_arrow_dark = None
+
+        # ----- Load Slider Images -----
+    try:
+        slider_on = pygame.image.load(os.path.join(ROOT_PATH, "media/graphics/items/On-Switch.png"))
+        slider_off = pygame.image.load(os.path.join(ROOT_PATH, "media/graphics/items/Off-Switch.png"))
+
+        slider_on = pygame.transform.scale(slider_on, (200, 70))
+        slider_off = pygame.transform.scale(slider_off, (200, 70))
+    except:
+        slider_on = None
+        slider_off = None
+
+
     running = True
 
     # Settings list
     options = [
         ("Tutorial", "tutorial_enabled", False, ""),
-        ("Sound Volume", "sound_volume", True, ""),
-        ("Music Volume", "music_volume", True, ""),
         ("Show FPS", "show_fps", True, ""),
         ("Mouse Control", "mouse_enabled", True, ""),
+        ("Sound Volume", "sound_volume", True, ""),
+        ("Music Volume", "music_volume", True, ""),
     ]
 
     # Ensure all options exist in config
@@ -429,13 +458,13 @@ def open_settings_menu(screen):
     save_config()
 
     # ---- COLUMN LAYOUT ----
-    col_label_x = SCREEN_WIDTH // 2 - 330
+    col_label_x = SCREEN_WIDTH // 2 - 260
     col_state_x = SCREEN_WIDTH // 2 - 40
-    col_checkbox_x = SCREEN_WIDTH // 2 + 80
+    col_checkbox_x = SCREEN_WIDTH // 2 + 90
     col_note_x = SCREEN_WIDTH // 2 + 260
 
-    start_y = 240
-    spacing = 55
+    start_y = 250
+    spacing = 80
 
     # Build clickable rectangles for each row
     checkbox_rects = []
@@ -451,10 +480,9 @@ def open_settings_menu(screen):
 
         # Sound Volume row
         if label == "Sound Volume":
-            value_rect = pygame.Rect(col_checkbox_x - value_box_width // 2, y + 4, value_box_width, 40)
-            minus_rect = pygame.Rect(value_rect.left - 50, y + 4, 40, 40)
-            plus_rect = pygame.Rect(value_rect.right + 10, y + 4, 40, 40)
-
+            value_rect = pygame.Rect(col_checkbox_x - value_box_width // 2, y - 10, value_box_width, 40)
+            minus_rect = pygame.Rect(value_rect.left - 60, y - 10, 40, 40)
+            plus_rect = pygame.Rect(value_rect.right + 20, y - 10, 40, 40)
             volume_minus_rects["sound_volume"] = minus_rect
             volume_plus_rects["sound_volume"] = plus_rect
             volume_value_rects["sound_volume"] = value_rect
@@ -463,10 +491,9 @@ def open_settings_menu(screen):
 
         # Music Volume row
         if label == "Music Volume":
-            value_rect = pygame.Rect(col_checkbox_x - value_box_width // 2, y + 4, value_box_width, 40)
-            minus_rect = pygame.Rect(value_rect.left - 50, y + 4, 40, 40)
-            plus_rect = pygame.Rect(value_rect.right + 10, y + 4, 40, 40)
-
+            value_rect = pygame.Rect(col_checkbox_x - value_box_width // 2, y - 10, value_box_width, 40)
+            minus_rect = pygame.Rect(value_rect.left - 60, y - 10, 40, 40)
+            plus_rect = pygame.Rect(value_rect.right + 20, y - 10, 40, 40)
             volume_minus_rects["music_volume"] = minus_rect
             volume_plus_rects["music_volume"] = plus_rect
             volume_value_rects["music_volume"] = value_rect
@@ -474,7 +501,7 @@ def open_settings_menu(screen):
             continue
 
         # Normal checkbox rows
-        checkbox = pygame.Rect(col_checkbox_x - 18, y + 4, 36, 36)
+        checkbox = pygame.Rect(col_checkbox_x - 100, y - 25, 200, 70)
         checkbox_rects.append((checkbox, key))
 
     how_text = small.render("How to Play", True, WHITE)
@@ -506,21 +533,24 @@ def open_settings_menu(screen):
                 plus = volume_plus_rects["sound_volume"]
                 value = volume_value_rects["sound_volume"]
 
-                pygame.draw.rect(screen, WHITE, minus, 3)
-                pygame.draw.rect(screen, WHITE, plus, 3)
+                # volume number box stays the same
                 pygame.draw.rect(screen, WHITE, value, 3)
-
-                minus_text = small.render("-", True, WHITE)
-                plus_text = small.render("+", True, WHITE)
-
                 val = str(config.get("sound_volume", 5))
                 val_surf = small.render(val, True, WHITE)
                 val_rect = val_surf.get_rect(center=value.center)
-
                 screen.blit(val_surf, val_rect)
-                screen.blit(minus_text, minus.move(10, 5))
-                screen.blit(plus_text, plus.move(10, 5))
 
+                # left arrow (dark at 0)
+                if config.get("sound_volume", 5) == 0:
+                    screen.blit(left_arrow_dark, minus)
+                else:
+                    screen.blit(left_arrow, minus)
+
+                # right arrow (dark at 5)
+                if config.get("sound_volume", 5) == 5:
+                    screen.blit(right_arrow_dark, plus)
+                else:
+                    screen.blit(right_arrow, plus)
                 continue
 
             if label == "Music Volume":
@@ -528,38 +558,33 @@ def open_settings_menu(screen):
                 plus = volume_plus_rects["music_volume"]
                 value = volume_value_rects["music_volume"]
 
-                pygame.draw.rect(screen, WHITE, minus, 3)
-                pygame.draw.rect(screen, WHITE, plus, 3)
+                # volume number box
                 pygame.draw.rect(screen, WHITE, value, 3)
-
-                minus_text = small.render("-", True, WHITE)
-                plus_text = small.render("+", True, WHITE)
-
                 val = str(config.get("music_volume", 5))
                 val_surf = small.render(val, True, WHITE)
                 val_rect = val_surf.get_rect(center=value.center)
-
                 screen.blit(val_surf, val_rect)
-                screen.blit(minus_text, minus.move(10, 5))
-                screen.blit(plus_text, plus.move(10, 5))
 
+                # left arrow (dark at 0)
+                if config.get("music_volume", 5) == 0:
+                    screen.blit(left_arrow_dark, minus)
+                else:
+                    screen.blit(left_arrow, minus)
+
+                # right arrow (dark at 5)
+                if config.get("music_volume", 5) == 5:
+                    screen.blit(right_arrow_dark, plus)
+                else:
+                    screen.blit(right_arrow, plus)
                 continue
 
-            color = GREEN if state == "ON" else RED
-
-            state_text = small.render(state, True, color)
-            screen.blit(state_text, (col_state_x, y))
-
-            # Checkbox
+            #Slider image
             checkbox, key_ref = checkbox_rects[i]
-            pygame.draw.rect(screen, WHITE, checkbox, 3)
+
             if config.get(key):
-                pygame.draw.line(screen, (255, 255, 0),
-                                 (checkbox.left + 6, checkbox.top + 6),
-                                 (checkbox.right - 6, checkbox.bottom - 6), 4)
-                pygame.draw.line(screen, (255, 255, 0),
-                                 (checkbox.right - 6, checkbox.top + 6),
-                                 (checkbox.left + 6, checkbox.bottom - 6), 4)
+                screen.blit(slider_on, checkbox)
+            else:
+                screen.blit(slider_off, checkbox)
 
             if unfinished:
                 note_text = small.render(note, True, (180, 180, 180))
