@@ -445,8 +445,8 @@ def open_settings_menu(screen):
 
 # ---------- HOW TO PLAY ----------
 def show_how_to_play(screen):
-    font = pygame.font.Font(None, 60)
-    small = pygame.font.Font(None, 36)
+    font = pygame.font.Font(os.path.join(ROOT_PATH, "media/graphics/font/Pixeboy.ttf"), 60)
+    small = pygame.font.Font(os.path.join(ROOT_PATH, "media/graphics/font/Pixeboy.ttf"), 36)
 
     running = True
     while running:
