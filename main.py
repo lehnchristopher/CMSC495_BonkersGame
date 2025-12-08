@@ -626,8 +626,8 @@ def open_settings_menu(screen):
 
 # ---------- HOW TO PLAY ----------
 def show_how_to_play(screen):
-    font = pygame.font.Font(None, 60)
-    small = pygame.font.Font(None, 36)
+    font = pygame.font.Font(os.path.join(ROOT_PATH, "media/graphics/font/Pixeboy.ttf"), 60)
+    small = pygame.font.Font(os.path.join(ROOT_PATH, "media/graphics/font/Pixeboy.ttf"), 36)
 
     running = True
     while running:
@@ -679,8 +679,8 @@ def show_how_to_play(screen):
 
 # ---------- CREDITS ----------
 def show_credits(screen):
-    font = pygame.font.Font(None, 60)
-    small = pygame.font.Font(None, 40)
+    font = pygame.font.Font("media/graphics/font/Pixeboy.ttf", 55)
+    small = pygame.font.Font("media/graphics/font/Pixeboy.ttf", 30)
 
     running = True
     while running:
@@ -703,30 +703,25 @@ def show_credits(screen):
 
         names = [
             "Program Manager / Team Lead:",
-            "• Christopher Lehn",
-
-            "Gameplay Developer – Dustyn Hermann",
-            "Core Systems Developer – Joshua Marshall",
-
-            "UI/UX & Art–Audio Designer:",
-            "• Venus Gilyard",
-
+            "Christopher Lehn",
+            "Gameplay Developer - Dustyn Hermann",
+            "Core Systems Developer - Joshua Marshall",
+            "UI/UX & Art-Audio Designer:",
+            "Venus Gilyard",
             "Documentation & Quality Tester:",
-            "• Manuel Delgado",
-
+            "Manuel Delgado",
             "---------------------------------------------",
             "Special Thanks:",
-            "• Everyone who tested the game",
+            "Everyone who tested the game",
             "---------------------------------------------",
-
             "Course Acknowledgments:",
-            "• University of Maryland Global Campus (UMGC)",
-            "• Professor Jeff Sanford – Primary Instructor, CMSC 495",
-            "   Thank you for your guidance and support!"
+            "University of Maryland Global Campus (UMGC)",
+            "Professor Jeff Sanford - Primary Instructor, CMSC 495",
+            " Thank you for your guidance and support!"
         ]
 
         y = start_y
-        spacing = 45
+        spacing = 42
 
         for line in names:
             txt = small.render(line, True, WHITE)
