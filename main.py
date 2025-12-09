@@ -644,6 +644,9 @@ def open_settings_menu(screen):
                         save_config()
 
                 if how_rect.collidepoint(pos):
+                    if menu_click_sound and current_sfx_volume() > 0:
+                        menu_click_sound.set_volume(current_sfx_volume())
+                        menu_click_sound.play()
                     show_how_to_play(screen)
 
                 if back_rect.collidepoint(pos):

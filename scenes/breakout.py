@@ -552,6 +552,13 @@ def main_controller(screen, debug_mode="", character_image=None):
                     # Prepare next level
                     reset_all_effects(blasts, coins, powerups, particles)
 
+                    # Reset active power-up states
+                    blast_active = False
+                    blast_timer = 0
+                    paddle_state = "normal"
+                    paddle_state_timer = 0
+                    fireball_active = False
+                    fireball_timer = 0
                     if hasattr(game_loop, "fireballs"):
                         game_loop.fireballs.clear()
 
@@ -710,6 +717,12 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level,
 
             # Activate effect based on type
             if powerup.type == "blast":
+                # Turn off paddle size powerups when getting blast
+                paddle_state = "normal"
+                paddle_state_timer = 0
+                fireball_active = False  # Stop new fireballs (existing ones continue)
+                fireball_timer = 0
+                
                 blast_active = True
                 blast_timer = blast_duration
 
@@ -719,19 +732,28 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level,
             elif powerup.type == "small_paddle":
                 blast_active = False
                 blast_timer = 0
-
+                fireball_active = False
+                fireball_timer = 0
+                
                 paddle_state = "small"
                 paddle_state_timer = paddle_power_duration
-
+                
             elif powerup.type == "big_paddle":
                 blast_active = False
                 blast_timer = 0
-
+                fireball_active = False
+                fireball_timer = 0
+                
                 paddle_state = "big"
                 paddle_state_timer = paddle_power_duration
-
-
+                
             elif powerup.type == "fireball":
+                # Turn off other paddle powerups when getting fireball
+                blast_active = False
+                blast_timer = 0
+                paddle_state = "normal"
+                paddle_state_timer = 0
+                
                 fireball_active = True
                 fireball_timer = fireball_duration
 
@@ -815,6 +837,12 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level,
 
         if fireball_timer <= 0:
             fireball_active = False
+            
+    # Handle paddle state timer (for small and big paddle)
+    if paddle_state != "normal":
+        paddle_state_timer -= 1
+        if paddle_state_timer <= 0:
+            paddle_state = "normal"
 
     # ---------- PADDLE SIZE TIMER ----------
     if paddle_state != "normal":
@@ -869,6 +897,9 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level,
                     elif drop == "reverse":
                         powerups.append(PowerUp(block.rect.centerx - 15,
                                                 block.rect.centery, "reverse"))
+
+                    elif drop == "fireball":
+                        powerups.append(PowerUp(block.rect.centerx - 15, block.rect.centery, "fireball"))
 
                     blocks.remove(block)
                     scoreboard.add_points(50)
@@ -1821,4 +1852,3 @@ def pause_game(screen):
             unpause_sound.set_volume(current_volume())
             unpause_sound.play()
         return True
-    return True

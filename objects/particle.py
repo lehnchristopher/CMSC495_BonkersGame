@@ -116,16 +116,27 @@ class ExplosionManager:
 
 
 class Fireball:
-    """Fireball projectile that shoots upward """
-    def __init__(self, x, y):
+    """Fireball projectile that shoots toward a target"""
+    def __init__(self, x, y, target_x, target_y):
         self.width = 30
         self.height = 30
         self.x = x
         self.y = y
-
-        self.velocity_x = 0
-        self.velocity_y = -10
-
+        
+        # Calculate direction toward target
+        dx = target_x - x
+        dy = target_y - y
+        distance = math.sqrt(dx**2 + dy**2)
+        
+        # Normalize and set speed
+        if distance > 0:
+            speed = 8
+            self.velocity_x = (dx / distance) * speed
+            self.velocity_y = (dy / distance) * speed
+        else:
+            self.velocity_x = 0
+            self.velocity_y = -10
+        
         self.trail_particles = []
         
         # Load fireball image
@@ -144,19 +155,19 @@ class Fireball:
     def update(self):
         self.x += self.velocity_x
         self.y += self.velocity_y
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.rect.x = int(self.x)
+        self.rect.y = int(self.y)
         
-        # Add trail particles occasionally
-        if random.random() < 0.4:
+        # Add trail particles occasionally (reduced rate for better performance)
+        if random.random() < 0.2:
             trail_color = random.choice([(255, 150, 0), (255, 200, 50), (255, 100, 0)])
             self.trail_particles.append(ExplosionParticle(self.x + self.width//2, self.y + self.height//2, trail_color))
         
-        # Update trail
-        self.trail_particles = [p for p in self.trail_particles if p.update()]
+        # Update trail (keep only first 15 particles to prevent lag)
+        self.trail_particles = [p for p in self.trail_particles if p.update()][:15]
         
-        # Deactivate if off screen
-        if self.y < -50:
+        # Deactivate if off screen (any edge)
+        if self.y < -50 or self.y > 800 or self.x < -50 or self.x > 1050:
             self.active = False
         
     def draw(self, screen):
@@ -164,9 +175,9 @@ class Fireball:
         for particle in self.trail_particles:
             particle.draw(screen)
         
-        # Draw fireball
+        # Draw fireball (convert to int for smooth rendering)
         if self.image:
-            screen.blit(self.image, (self.x, self.y))
+            screen.blit(self.image, (int(self.x), int(self.y)))
         else:
             # Fallback: draw orange/red circle with glow
             center_x = int(self.x + self.width // 2)
@@ -187,4 +198,4 @@ class Fireball:
             pygame.draw.circle(screen, (255, 255, 200), (center_x, center_y), radius - 4)
             
     def is_off_screen(self):
-        return self.y < 120  
+        return self.y < 120 or self.y > 800 or self.x < -50 or self.x > 1050
