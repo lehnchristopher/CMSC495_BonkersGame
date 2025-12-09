@@ -442,16 +442,14 @@ def main_controller(screen, debug_mode="", character_image=None):
     tutorial_phase = "move"
 
     # Reset power-ups at start of game
-    global blast_active, blast_timer, paddle_shrink_active, paddle_shrink_timer, fireball_active, fireball_timer
+    global blast_active, blast_timer, fireball_active, fireball_timer
     blast_active = False
     blast_timer = 0
-    paddle_shrink_active = False
-    paddle_shrink_timer = 0
     fireball_active = False
     fireball_timer = 0
     running = True
     while running:
-        status = game_loop(screen, scoreboard, game_timer, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration, explosion_manager)
+        status = game_loop(screen, scoreboard, game_timer, blocks, debug_mode, level, particles, coins, powerups, blasts, blast_duration, explosion_manager, cfg)
 
 
         if status == "running":
@@ -505,8 +503,8 @@ def main_controller(screen, debug_mode="", character_image=None):
                     # Reset active power-up states
                     blast_active = False
                     blast_timer = 0
-                    paddle_shrink_active = False
-                    paddle_shrink_timer = 0
+                    paddle_state = "normal"
+                    paddle_state_timer = 0
                     fireball_active = False
                     fireball_timer = 0
 
@@ -551,8 +549,6 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
     global level_timer, ball_image
     global fireball_active, fireball_timer
     global paddle_state, paddle_state_timer
-    global paddle_shrink_active, paddle_shrink_timer
-    global paddle_big_active, paddle_big_timer
     show_fps = (debug_mode is not False) or cfg.get("show_fps", False)
 
     walls = draw_wall(screen)
@@ -639,10 +635,8 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
             # Turn off conflicting powerups when collecting a new one
             if powerup.type == "blast":
                 # Turn off paddle size powerups when getting blast
-                paddle_shrink_active = False
-                paddle_shrink_timer = 0
-                paddle_big_active = False
-                paddle_big_timer = 0
+                paddle_state = "normal"
+                paddle_state_timer = 0
                 fireball_active = False  # Stop new fireballs (existing ones continue)
                 fireball_timer = 0
                 
@@ -653,34 +647,28 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
                 # Turn off other paddle powerups when getting small paddle
                 blast_active = False
                 blast_timer = 0
-                paddle_big_active = False
-                paddle_big_timer = 0
                 fireball_active = False
                 fireball_timer = 0
                 
-                paddle_shrink_active = True
-                paddle_shrink_timer = paddle_shrink_duration
+                paddle_state = "small"
+                paddle_state_timer = paddle_power_duration
                 
             elif powerup.type == "big_paddle":
                 # Turn off other paddle powerups when getting big paddle
                 blast_active = False
                 blast_timer = 0
-                paddle_shrink_active = False
-                paddle_shrink_timer = 0
                 fireball_active = False
                 fireball_timer = 0
                 
-                paddle_big_active = True
-                paddle_big_timer = paddle_big_duration
+                paddle_state = "big"
+                paddle_state_timer = paddle_power_duration
                 
             elif powerup.type == "fireball":
                 # Turn off other paddle powerups when getting fireball
                 blast_active = False
                 blast_timer = 0
-                paddle_shrink_active = False
-                paddle_shrink_timer = 0
-                paddle_big_active = False
-                paddle_big_timer = 0
+                paddle_state = "normal"
+                paddle_state_timer = 0
                 
                 fireball_active = True
                 fireball_timer = fireball_duration
@@ -736,17 +724,11 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
         if fireball_timer <= 0:
             fireball_active = False
             
-    # Handle paddle shrinking
-    if paddle_shrink_active and paddle_shrink_timer > 0:
-        paddle_shrink_timer -= 1
-    if paddle_shrink_active and paddle_shrink_timer <= 0:
-        paddle_shrink_active = False
-        
-    # Handle big paddle
-    if paddle_big_active and paddle_big_timer > 0:
-        paddle_big_timer -= 1
-    if paddle_big_active and paddle_big_timer <= 0:
-        paddle_big_active = False
+    # Handle paddle state timer (for small and big paddle)
+    if paddle_state != "normal":
+        paddle_state_timer -= 1
+        if paddle_state_timer <= 0:
+            paddle_state = "normal"
 
 
     # Update and draw blasts
@@ -784,6 +766,9 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level, par
 
                     elif drop == "big_paddle":
                         powerups.append(PowerUp(block.rect.centerx - 15, block.rect.centery, "big_paddle"))
+
+                    elif drop == "fireball":
+                        powerups.append(PowerUp(block.rect.centerx - 15, block.rect.centery, "fireball"))
 
                     blocks.remove(block)
                     scoreboard.add_points(50)
@@ -1277,7 +1262,7 @@ def get_x_angle(bar, ball_dict):
 # ================= Collision & Drops =================
 
 def detect_collision(blocks, particles, coins, powerups, scoreboard):
-    global balls, blast_active, paddle_shrink_active
+    global balls, blast_active
 
     score_increase = 0
 
@@ -1548,8 +1533,7 @@ def show_boss_intro(screen):
 def update_scoreboard(screen, scoreboard, timer, blasts, coins, powerups):
     global ball_position, ball_velocity, bar_x
     global blast_active, blast_timer
-    global paddle_shrink_active, paddle_shrink_timer
-    global paddle_big_active, paddle_big_timer
+    global paddle_state, paddle_state_timer
     global fireball_active, fireball_timer
 
     scoreboard.lose_life()
@@ -1569,10 +1553,8 @@ def update_scoreboard(screen, scoreboard, timer, blasts, coins, powerups):
 
         blast_active = False
         blast_timer = 0
-        paddle_shrink_active = False
-        paddle_shrink_timer = 0
-        paddle_big_active = False
-        paddle_big_timer = 0
+        paddle_state = "normal"
+        paddle_state_timer = 0
         fireball_active = False
         fireball_timer = 0
 
