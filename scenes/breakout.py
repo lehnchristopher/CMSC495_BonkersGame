@@ -80,12 +80,7 @@ blast_active = False
 blast_timer = 0
 blast_duration = 300  # length of blast powerup
 
-paddle_shrink_active = False
-paddle_shrink_timer = 0
 paddle_shrink_duration = 300
-
-paddle_big_active = False
-paddle_big_timer = 0
 paddle_big_duration = 300
 
 paddle_state = "normal"
@@ -201,7 +196,7 @@ def slow_factor():
 
 # --- Drop Rates ---
 DROP_TABLE = {
-    "coin": 0.30,
+    "coin": 0.20,
     "triple_ball": 0.10,
     "blast": 0.10,
     "fireball": 0.15,
@@ -210,9 +205,8 @@ DROP_TABLE = {
     "slow": 0.05,
     "shield": 0.05,
     "reverse": 0.05,
-    "nothing": 0.20
+    "nothing": 0.15
 }
-
 
 # ================= Game Setup =================
 
@@ -506,8 +500,6 @@ def main_controller(screen, debug_mode="", character_image=None):
     global blast_active, blast_timer, paddle_state, paddle_state_timer, fireball_active, fireball_timer
     blast_active = False
     blast_timer = 0
-    paddle_shrink_active = False
-    paddle_shrink_timer = 0
     fireball_active = False
     fireball_timer = 0
     running = True
@@ -559,6 +551,9 @@ def main_controller(screen, debug_mode="", character_image=None):
                 else:
                     # Prepare next level
                     reset_all_effects(blasts, coins, powerups, particles)
+
+                    if hasattr(game_loop, "fireballs"):
+                        game_loop.fireballs.clear()
 
                     slow_timer = 0
                     reverse_timer = 0
@@ -715,59 +710,38 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level,
 
             # Activate effect based on type
             if powerup.type == "blast":
-                # Turn off paddle size powerups when getting blast
-                paddle_shrink_active = False
-                paddle_shrink_timer = 0
-                paddle_big_active = False
-                paddle_big_timer = 0
-                fireball_active = False  # Stop new fireballs (existing ones continue)
-                fireball_timer = 0
-                
                 blast_active = True
                 blast_timer = blast_duration
-                
+
+                if isinstance(blast_shoot_sound, Sound):
+                    blast_shoot_sound.play()
+
             elif powerup.type == "small_paddle":
-                # Turn off other paddle powerups when getting small paddle
                 blast_active = False
                 blast_timer = 0
-                paddle_big_active = False
-                paddle_big_timer = 0
-                fireball_active = False
-                fireball_timer = 0
-                
-                paddle_shrink_active = True
-                paddle_shrink_timer = paddle_shrink_duration
-                
+
+                paddle_state = "small"
+                paddle_state_timer = paddle_power_duration
+
             elif powerup.type == "big_paddle":
-                # Turn off other paddle powerups when getting big paddle
                 blast_active = False
                 blast_timer = 0
-                paddle_shrink_active = False
-                paddle_shrink_timer = 0
-                fireball_active = False
-                fireball_timer = 0
-                
-                paddle_big_active = True
-                paddle_big_timer = paddle_big_duration
-                
+
+                paddle_state = "big"
+                paddle_state_timer = paddle_power_duration
+
+
             elif powerup.type == "fireball":
-                # Turn off other paddle powerups when getting fireball
-                blast_active = False
-                blast_timer = 0
-                paddle_shrink_active = False
-                paddle_shrink_timer = 0
-                paddle_big_active = False
-                paddle_big_timer = 0
-                
                 fireball_active = True
                 fireball_timer = fireball_duration
-                
+
+                if fireball_moving_sound:
+                    fireball_moving_sound.play()
+
+
             elif powerup.type == "triple_ball":
                 # Triple ball doesn't turn off other powerups
                 spawn_triple_ball()
-            elif powerup.type == "big_paddle":
-                paddle_state = "big"
-                paddle_state_timer = paddle_power_duration
             elif powerup.type == "slow":
                 slow_active = True
                 slow_timer = pygame.time.get_ticks()
@@ -812,40 +786,35 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level,
     if fireball_active and fireball_timer > 0:
         # Shoot 1 fireball every 30 frames (0.5 seconds)
         # Check BEFORE decrementing so first shot happens immediately
-        if fireball_timer % 30 == 0 and blocks:
+        if not hasattr(game_loop, "last_fireball_shot"):
+            game_loop.last_fireball_shot = 0
+
+        now = pygame.time.get_ticks()
+
+        if blocks and now - game_loop.last_fireball_shot >= 500:
+            game_loop.last_fireball_shot = now
+
             targeted_brick = random.choice(blocks)
+
             new_fireball = Fireball(
                 bar.centerx,
-                bar.top - 20,
+                bar.top - 40,
                 targeted_brick.rect.centerx,
                 targeted_brick.rect.centery
             )
-            
+
             if not hasattr(game_loop, 'fireballs'):
                 game_loop.fireballs = []
+
             game_loop.fireballs.append(new_fireball)
-            
+
             if fireball_moving_sound:
                 fireball_moving_sound.play()
-        
-        # Decrement timer AFTER checking
+
         fireball_timer -= 1
-        
-        # Deactivate when timer runs out
+
         if fireball_timer <= 0:
             fireball_active = False
-            
-    # Handle paddle shrinking
-    if paddle_shrink_active and paddle_shrink_timer > 0:
-        paddle_shrink_timer -= 1
-    if paddle_shrink_active and paddle_shrink_timer <= 0:
-        paddle_shrink_active = False
-        
-    # Handle big paddle
-    if paddle_big_active and paddle_big_timer > 0:
-        paddle_big_timer -= 1
-    if paddle_big_active and paddle_big_timer <= 0:
-        paddle_big_active = False
 
     # ---------- PADDLE SIZE TIMER ----------
     if paddle_state != "normal":
@@ -925,7 +894,7 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level,
             for block in blocks[:]:
                 if block.rect.colliderect(fireball_rect):
                     destroyed = block.hit()
-                    
+
                     if destroyed:
                         # Create EXPLOSION!
                         explosion_manager.create_explosion(
@@ -933,14 +902,18 @@ def game_loop(screen, scoreboard, game_timer_ref, blocks, debug_mode, level,
                             block.rect.centery,
                             block.color
                         )
-                        
+
+                        # Force immediate visual update this frame
+                        explosion_manager.update()
+                        explosion_manager.draw(screen)
+
                         # Play explosion sound
                         if fireball_explosion_sound:
                             fireball_explosion_sound.play()
-                            
+
                         # Use drop table
                         drop = choose_drop()
-                        
+
                         if drop == "coin":
                             coins.append(Coin(block.rect.centerx - 15, block.rect.centery))
                         elif drop == "blast":
@@ -1722,8 +1695,9 @@ def reset_all_effects(blasts, coins, powerups, particles):
     global paddle_state, paddle_state_timer
     global last_hit_ball
     global shield_active, shield_rect, shield_used, shield_on_screen
-    global slow_active, slow_ramp, slow_on_screen
-    global reverse_active, reverse_on_screen
+    global slow_active, slow_timer, slow_ramp, slow_on_screen
+    global reverse_active, reverse_timer, reverse_on_screen
+    global fireball_active, fireball_timer
 
     # Reset all effect states
     blast_active = False
@@ -1734,14 +1708,29 @@ def reset_all_effects(blasts, coins, powerups, particles):
 
     shield_active = False
     shield_rect = None
+    shield_used = False
     shield_on_screen = False
 
     slow_active = False
+    slow_timer = 0
     slow_ramp = 1.0
     slow_on_screen = False
 
     reverse_active = False
+    reverse_timer = 0
     reverse_on_screen = False
+
+    fireball_active = False
+    fireball_timer = 0
+
+    if hasattr(game_loop, "fireballs"):
+        game_loop.fireballs.clear()
+
+    if hasattr(game_loop, "last_blast_shot"):
+        game_loop.last_blast_shot = 0
+
+    if hasattr(game_loop, "last_fireball_shot"):
+        game_loop.last_fireball_shot = 0
 
     # Reset paddle visuals
     draw_bar.width = original_paddle_width
@@ -1788,6 +1777,9 @@ def update_scoreboard(screen, scoreboard, timer, blasts, coins, powerups, partic
         last_hit_ball = None
 
         reset_all_effects(blasts, coins, powerups, particles)
+
+        if hasattr(game_loop, "fireballs"):
+            game_loop.fireballs.clear()
 
         message = font.render(f"Lives Left: {scoreboard.lives}", True, WHITE)
         screen.blit(message, (SCREEN_WIDTH // 2 - message.get_width() // 2, SCREEN_HEIGHT // 2))

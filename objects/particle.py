@@ -122,7 +122,10 @@ class Fireball:
         self.height = 30
         self.x = x
         self.y = y
-        self.velocity_y = -10  
+
+        self.velocity_x = 0
+        self.velocity_y = -10
+
         self.trail_particles = []
         
         # Load fireball image
@@ -137,8 +140,9 @@ class Fireball:
         
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.active = True
-        
+
     def update(self):
+        self.x += self.velocity_x
         self.y += self.velocity_y
         self.rect.x = self.x
         self.rect.y = self.y
